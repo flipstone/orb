@@ -3,7 +3,44 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    name: json-fleece-aeson
+    pantry-tree:
+      sha256: 14fc55cbfef5a6751d7168dec038545d05f22e54e28fa310b22b61fad4cfd424
+      size: 581
+    sha256: 5d56ee54e77fee56985ef06690155f1934e4a0cd8a58a7001e8720ba4e5f64f1
+    size: 3042759
+    subdir: json-fleece-aeson
+    url: https://github.com/flipstone/json-fleece/archive/b670750d38acfd93b3ff1300f8588de96d461e42.tar.gz
+    version: 0.3.6.0
+  original:
+    subdir: json-fleece-aeson
+    url: https://github.com/flipstone/json-fleece/archive/b670750d38acfd93b3ff1300f8588de96d461e42.tar.gz
+- completed:
+    name: json-fleece-core
+    pantry-tree:
+      sha256: 7c2ad145e9bd9817fd37b859e8adec6c6d12e606bfefcd0fb33ec6bf95b992b4
+      size: 443
+    sha256: 5d56ee54e77fee56985ef06690155f1934e4a0cd8a58a7001e8720ba4e5f64f1
+    size: 3042759
+    subdir: json-fleece-core
+    url: https://github.com/flipstone/json-fleece/archive/b670750d38acfd93b3ff1300f8588de96d461e42.tar.gz
+    version: 0.7.0.0
+  original:
+    subdir: json-fleece-core
+    url: https://github.com/flipstone/json-fleece/archive/b670750d38acfd93b3ff1300f8588de96d461e42.tar.gz
+- completed:
+    name: shrubbery
+    pantry-tree:
+      sha256: 5759b7adbf312f3aeaba79542cfe4165d59b79c12767caea4b04e54d7706f184
+      size: 1739
+    sha256: 72ba35c6f9078f82e9e9e2b008efc457abbcf78b7088f5c51c8f86dbe34d7895
+    size: 25744
+    url: https://github.com/flipstone/shrubbery/archive/40a2bbe88ac99ec6fbad7a40e331a1f624e70850.tar.gz
+    version: 0.2.2.1
+  original:
+    url: https://github.com/flipstone/shrubbery/archive/40a2bbe88ac99ec6fbad7a40e331a1f624e70850.tar.gz
 snapshots:
 - completed:
     sha256: 6c5aeace2ca5ecde793a9e0acfaa730ec8f384aa2f6183a2a252f5f9ec55d623
