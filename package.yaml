@@ -1,0 +1,71 @@
+name:                orb
+version:             0.2.2.1
+github:              "flipstone/orb"
+license:             GPL-3
+author:              "Flipstone Technology Partners, Inc"
+maintainer:          "development@flipstone.com"
+copyright:           "2025 Flipstone Technology Partners, Inc"
+
+extra-source-files:
+  - README.md
+
+# Metadata used when publishing your package
+# synopsis:            Short description of your package
+# category:            Web
+
+# To avoid duplicated efforts in documentation and dealing with the
+# complications of embedding Haddock markup inside cabal files, it is
+# common to point users to the README.md file.
+description:         Please see the README on GitHub at <https://github.com/flipstone/orb#readme>
+
+flags:
+  ci:
+    description: More strict ghc options used for development and ci, not intended for end-use.
+    manual: true
+    default: false
+
+dependencies:
+  - base >= 4.7 && < 5
+
+library:
+  source-dirs: src
+  exposed-modules:
+    - Orb
+  when:
+    - condition: flag(ci)
+      then:
+        ghc-options:
+          - -O2
+          - -Wall
+          - -Werror
+          - -Wcompat
+          - -Widentities
+          - -Wincomplete-uni-patterns
+          - -Wincomplete-patterns
+          - -Wincomplete-record-updates
+          - -Wmissing-local-signatures
+          - -Wmissing-export-lists
+          - -Wnoncanonical-monad-instances
+          - -Wpartial-fields
+          - -Wmissed-specialisations
+          - -Wno-implicit-prelude
+          - -Wno-safe
+          - -Wno-unsafe
+      else:
+        ghc-options:
+          - -O2
+          - -Wall
+          - -fwarn-incomplete-uni-patterns
+          - -fwarn-incomplete-record-updates
+
+tests:
+  orb-test:
+    main: Main.hs
+    source-dirs: test
+    ghc-options:
+      - -threaded
+      - -rtsopts
+      - -with-rtsopts=-N
+      - -Wall
+      - -Werror
+      - -O2
