@@ -12,7 +12,7 @@ bug-reports:    https://github.com/flipstone/orb/issues
 author:         Flipstone Technology Partners, Inc
 maintainer:     development@flipstone.com
 copyright:      2025 Flipstone Technology Partners, Inc
-license:        GPL-3
+license:        MIT
 license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
