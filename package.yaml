@@ -1,10 +1,15 @@
 name:                orb
-version:             0.2.2.1
+version:             0.1.0
 github:              "flipstone/orb"
 license:             MIT
 author:              "Flipstone Technology Partners, Inc"
 maintainer:          "development@flipstone.com"
 copyright:           "2025 Flipstone Technology Partners, Inc"
+
+language: Haskell2010
+
+default-extensions:
+  - ImportQualifiedPost
 
 extra-source-files:
   - README.md
@@ -26,6 +31,15 @@ flags:
 
 dependencies:
   - base >= 4.7 && < 5
+  - bytestring
+  - containers
+  - http-types
+  - json-fleece-aeson
+  - json-fleece-core
+  - shrubbery
+  - text
+  - unliftio
+  - wai
 
 library:
   source-dirs: src
@@ -51,6 +65,7 @@ library:
           - -Wno-implicit-prelude
           - -Wno-safe
           - -Wno-unsafe
+          - -fwrite-ide-info -hiedir=.hie
       else:
         ghc-options:
           - -O2

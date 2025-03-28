@@ -22,11 +22,22 @@ packages:
 # - acme-missiles-0.3
 # - git: https://github.com/commercialhaskell/stack.git
 #   commit: e7b331f14bcffb8367cd58fbfc8b40ec7642100a
-#
-# extra-deps: []
+
+extra-deps:
+# Fleece
+- github: flipstone/json-fleece
+  commit: b670750d38acfd93b3ff1300f8588de96d461e42
+  subdirs:
+    - json-fleece-aeson
+    - json-fleece-core
+# Shrubbery
+- github: flipstone/shrubbery
+  commit: 40a2bbe88ac99ec6fbad7a40e331a1f624e70850
 
 # Override default flag values for local packages and extra-deps
-# flags: {}
+flags:
+  orb:
+    ci: true
 
 # Extra package databases containing global packages
 # extra-package-dbs: []
