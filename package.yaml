@@ -40,6 +40,7 @@ dependencies:
   - text
   - unliftio
   - wai
+  - wai-extra
 
 library:
   source-dirs: src
