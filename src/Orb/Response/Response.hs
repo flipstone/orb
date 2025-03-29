@@ -7,13 +7,13 @@
 
 module Orb.Response.Response
   ( respondWith
-  , ResponseSchemas (..)
-  , responseSchemaList
-  , ResponseSchema (..)
+  , ResponseBodies (..)
+  , responseBodyList
+  , ResponseBody (..)
   , ResponseData (..)
-  , ResponseSchemasBuilder (..)
-  , responseSchemas
-  , noResponseSchemas
+  , ResponseBodiesBuilder (..)
+  , responseBodies
+  , noResponseBodies
   )
 where
 
@@ -21,27 +21,27 @@ import Control.Monad.IO.Class qualified as MIO
 import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as LBS
 import Data.Map.Strict qualified as Map
-import Fleece.Core qualified as FC
 import GHC.TypeLits (KnownNat)
 import Network.HTTP.Types qualified as HTTP
 import Network.Wai (Response, ResponseReceived)
 import Shrubbery qualified as S
 
 import Orb.HasRespond qualified as HasRespond
+import Orb.Response.ContentType (ContentType)
 
-data ResponseSchemas (tags :: [S.Tag]) = ResponseSchemas
+data ResponseBodies (tags :: [S.Tag]) = ResponseBodies
   { encodeResponseBranches :: S.TaggedBranches tags ResponseData
-  , responseStatusMap :: Map.Map HTTP.Status ResponseSchema
+  , responseStatusMap :: Map.Map HTTP.Status ResponseBody
   }
 
-responseSchemaList :: ResponseSchemas tags -> [(HTTP.Status, ResponseSchema)]
-responseSchemaList =
+responseBodyList :: ResponseBodies tags -> [(HTTP.Status, ResponseBody)]
+responseBodyList =
   Map.toList . responseStatusMap
 
-data ResponseSchema where
-  ResponseSchema :: (forall schema. FC.Fleece schema => schema a) -> ResponseSchema
-  NoResponseSchema :: ResponseSchema
-  ResponseDocument :: ResponseSchema
+data ResponseBody where
+  ResponseContent :: ContentType -> (a -> LBS.ByteString) -> ResponseBody
+  ResponseDocument :: ResponseBody
+  EmptyResponseBody :: ResponseBody
 
 data ResponseData = ResponseData
   { responseDataStatus :: HTTP.Status
@@ -50,24 +50,24 @@ data ResponseData = ResponseData
   , responseDataExtraHeaders :: HTTP.ResponseHeaders
   }
 
-data ResponseSchemasBuilder (tags :: [S.Tag]) = ResponseSchemasBuilder
+data ResponseBodiesBuilder (tags :: [S.Tag]) = ResponseBodiesBuilder
   { encodeResponseBranchesBuilder :: S.TaggedBranchBuilder tags ResponseData
-  , responseStatusMapBuilder :: Map.Map HTTP.Status ResponseSchema
+  , responseStatusMapBuilder :: Map.Map HTTP.Status ResponseBody
   }
 
-noResponseSchemas :: ResponseSchemasBuilder '[]
-noResponseSchemas =
-  ResponseSchemasBuilder
+noResponseBodies :: ResponseBodiesBuilder '[]
+noResponseBodies =
+  ResponseBodiesBuilder
     { encodeResponseBranchesBuilder = S.taggedBranchEnd
     , responseStatusMapBuilder = Map.empty
     }
 
-responseSchemas ::
+responseBodies ::
   (KnownNat length, length ~ S.Length (S.TaggedTypes tags)) =>
-  ResponseSchemasBuilder tags ->
-  ResponseSchemas tags
-responseSchemas builder =
-  ResponseSchemas
+  ResponseBodiesBuilder tags ->
+  ResponseBodies tags
+responseBodies builder =
+  ResponseBodies
     { encodeResponseBranches = S.taggedBranchBuild (encodeResponseBranchesBuilder builder)
     , responseStatusMap = responseStatusMapBuilder builder
     }
