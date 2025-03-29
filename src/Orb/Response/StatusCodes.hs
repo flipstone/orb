@@ -9,95 +9,95 @@
 {-# LANGUAGE TypeOperators #-}
 
 module Orb.Response.StatusCodes
-  ( addResponseSchema100
-  , addResponseSchema101
+  ( addResponse100
+  , addResponse101
   , addResponseDocument200
-  , addResponseSchema200
+  , addResponseBody200
   , addResponseDocument201
-  , addResponseSchema201
+  , addResponseBody201
   , addResponseDocument202
-  , addResponseSchema202
+  , addResponseBody202
   , addResponseDocument203
-  , addResponseSchema203
-  , addResponseSchema204
-  , addResponseSchema205
+  , addResponseBody203
+  , addResponse204
+  , addResponse205
   , addResponseDocument206
-  , addResponseSchema206
+  , addResponseBody206
   , addResponseDocument300
-  , addResponseSchema300
+  , addResponseBody300
   , addResponseDocument301
-  , addResponseSchema301
+  , addResponseBody301
   , addResponseDocument302
-  , addResponseSchema302
+  , addResponseBody302
   , addResponseDocument303
-  , addResponseSchema303
-  , addResponseSchema304
+  , addResponseBody303
+  , addResponse304
   , addResponseDocument305
-  , addResponseSchema305
+  , addResponseBody305
   , addResponseDocument307
-  , addResponseSchema307
+  , addResponseBody307
   , addResponseDocument308
-  , addResponseSchema308
+  , addResponseBody308
   , addResponseDocument400
-  , addResponseSchema400
+  , addResponseBody400
   , addResponseDocument401
-  , addResponseSchema401
+  , addResponseBody401
   , addResponseDocument402
-  , addResponseSchema402
+  , addResponseBody402
   , addResponseDocument403
-  , addResponseSchema403
+  , addResponseBody403
   , addResponseDocument404
-  , addResponseSchema404
+  , addResponseBody404
   , addResponseDocument405
-  , addResponseSchema405
+  , addResponseBody405
   , addResponseDocument406
-  , addResponseSchema406
+  , addResponseBody406
   , addResponseDocument407
-  , addResponseSchema407
+  , addResponseBody407
   , addResponseDocument408
-  , addResponseSchema408
+  , addResponseBody408
   , addResponseDocument409
-  , addResponseSchema409
+  , addResponseBody409
   , addResponseDocument410
-  , addResponseSchema410
+  , addResponseBody410
   , addResponseDocument411
-  , addResponseSchema411
+  , addResponseBody411
   , addResponseDocument412
-  , addResponseSchema412
+  , addResponseBody412
   , addResponseDocument413
-  , addResponseSchema413
+  , addResponseBody413
   , addResponseDocument414
-  , addResponseSchema414
+  , addResponseBody414
   , addResponseDocument415
-  , addResponseSchema415
+  , addResponseBody415
   , addResponseDocument416
-  , addResponseSchema416
+  , addResponseBody416
   , addResponseDocument417
-  , addResponseSchema417
+  , addResponseBody417
   , addResponseDocument418
-  , addResponseSchema418
+  , addResponseBody418
   , addResponseDocument422
-  , addResponseSchema422
+  , addResponseBody422
   , addResponseDocument428
-  , addResponseSchema428
+  , addResponseBody428
   , addResponseDocument429
-  , addResponseSchema429
+  , addResponseBody429
   , addResponseDocument431
-  , addResponseSchema431
+  , addResponseBody431
   , addResponseDocument500
-  , addResponseSchema500
+  , addResponseBody500
   , addResponseDocument501
-  , addResponseSchema501
+  , addResponseBody501
   , addResponseDocument502
-  , addResponseSchema502
+  , addResponseBody502
   , addResponseDocument503
-  , addResponseSchema503
+  , addResponseBody503
   , addResponseDocument504
-  , addResponseSchema504
+  , addResponseBody504
   , addResponseDocument505
-  , addResponseSchema505
+  , addResponseBody505
   , addResponseDocument511
-  , addResponseSchema511
+  , addResponseBody511
   , Response100
   , Response101
   , Response200
@@ -242,26 +242,27 @@ module Orb.Response.StatusCodes
   )
 where
 
+import Data.ByteString.Lazy qualified as LBS
 import Data.Map.Strict qualified as Map
 import Data.Proxy (Proxy (Proxy))
-import Fleece.Aeson.Encoder (encode)
-import Fleece.Core qualified as FC
 import GHC.TypeLits (KnownNat)
 import Network.HTTP.Types qualified as HTTP
 import Shrubbery (type (@=))
 import Shrubbery qualified as S
 
+import Orb.Response.ContentType (ContentType, contentTypeToBytes)
 import Orb.Response.Document (Document (..))
-import Orb.Response.Response (ResponseData (..), ResponseSchema (..), ResponseSchemasBuilder (..))
+import Orb.Response.Response (ResponseBodiesBuilder (..), ResponseBody (..), ResponseData (..))
 import Orb.Response.Schemas (NoContent (..))
 
-addResponseSchema ::
+addResponseBody ::
   forall tag tags a.
   KnownHTTPStatus tag =>
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder ((tag @= (a, HTTP.ResponseHeaders)) : tags)
-addResponseSchema schema builder =
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder ((tag @= (a, HTTP.ResponseHeaders)) : tags)
+addResponseBody contentType encoder builder =
   let
     proxyTag :: Proxy tag
     proxyTag = Proxy
@@ -273,23 +274,26 @@ addResponseSchema schema builder =
     runEncoder (value, headers) =
       ResponseData
         { responseDataStatus = status
-        , responseDataBytes = encode schema value
-        , responseDataContentType = Just "application/json"
+        , responseDataBytes = encoder value
+        , responseDataContentType = Just $ contentTypeToBytes contentType
         , responseDataExtraHeaders = headers
         }
   in
-    ResponseSchemasBuilder
+    ResponseBodiesBuilder
       { encodeResponseBranchesBuilder =
           S.taggedBranch @tag runEncoder (encodeResponseBranchesBuilder builder)
       , responseStatusMapBuilder =
-          Map.insert status (ResponseSchema schema) (responseStatusMapBuilder builder)
+          Map.insert
+            status
+            (ResponseContent contentType encoder)
+            (responseStatusMapBuilder builder)
       }
 
 addResponseDocument ::
   forall tag tags.
   KnownHTTPStatus tag =>
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder ((tag @= (Document, HTTP.ResponseHeaders)) : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder ((tag @= (Document, HTTP.ResponseHeaders)) : tags)
 addResponseDocument builder =
   let
     proxyTag :: Proxy tag
@@ -308,19 +312,19 @@ addResponseDocument builder =
               : headers
         }
   in
-    ResponseSchemasBuilder
+    ResponseBodiesBuilder
       { encodeResponseBranchesBuilder =
           S.taggedBranch @tag encodeDocument (encodeResponseBranchesBuilder builder)
       , responseStatusMapBuilder =
           Map.insert status ResponseDocument (responseStatusMapBuilder builder)
       }
 
-addNoResponseSchema ::
+addNoResponseBody ::
   forall tag tags.
   KnownHTTPStatus tag =>
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder ((tag @= (NoContent, HTTP.ResponseHeaders)) : tags)
-addNoResponseSchema builder =
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder ((tag @= (NoContent, HTTP.ResponseHeaders)) : tags)
+addNoResponseBody builder =
   let
     proxyTag :: Proxy tag
     proxyTag = Proxy
@@ -337,11 +341,11 @@ addNoResponseSchema builder =
         , responseDataExtraHeaders = headers
         }
   in
-    ResponseSchemasBuilder
+    ResponseBodiesBuilder
       { encodeResponseBranchesBuilder =
           S.taggedBranch @tag runEncoder (encodeResponseBranchesBuilder builder)
       , responseStatusMapBuilder =
-          Map.insert status NoResponseSchema (responseStatusMapBuilder builder)
+          Map.insert status EmptyResponseBody (responseStatusMapBuilder builder)
       }
 
 class KnownHTTPStatus tag where
@@ -395,579 +399,621 @@ type Response504 a = "504" @= (a, HTTP.ResponseHeaders)
 type Response505 a = "505" @= (a, HTTP.ResponseHeaders)
 type Response511 a = "511" @= (a, HTTP.ResponseHeaders)
 
-addResponseSchema100 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response100 : tags)
-addResponseSchema100 =
-  addNoResponseSchema @"100"
+addResponse100 ::
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response100 : tags)
+addResponse100 =
+  addNoResponseBody @"100"
 
-addResponseSchema101 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response101 : tags)
-addResponseSchema101 =
-  addNoResponseSchema @"101"
+addResponse101 ::
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response101 : tags)
+addResponse101 =
+  addNoResponseBody @"101"
 
-addResponseSchema200 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response200 a : tags)
-addResponseSchema200 =
-  addResponseSchema @"200"
+addResponseBody200 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response200 a : tags)
+addResponseBody200 =
+  addResponseBody @"200"
 
 addResponseDocument200 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response200 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response200 Document : tags)
 addResponseDocument200 =
   addResponseDocument @"200"
 
-addResponseSchema201 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response201 a : tags)
-addResponseSchema201 =
-  addResponseSchema @"201"
+addResponseBody201 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response201 a : tags)
+addResponseBody201 =
+  addResponseBody @"201"
 
 addResponseDocument201 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response201 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response201 Document : tags)
 addResponseDocument201 =
   addResponseDocument @"201"
 
-addResponseSchema202 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response202 a : tags)
-addResponseSchema202 =
-  addResponseSchema @"202"
+addResponseBody202 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response202 a : tags)
+addResponseBody202 =
+  addResponseBody @"202"
 
 addResponseDocument202 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response202 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response202 Document : tags)
 addResponseDocument202 =
   addResponseDocument @"202"
 
-addResponseSchema203 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response203 a : tags)
-addResponseSchema203 =
-  addResponseSchema @"203"
+addResponseBody203 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response203 a : tags)
+addResponseBody203 =
+  addResponseBody @"203"
 
 addResponseDocument203 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response203 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response203 Document : tags)
 addResponseDocument203 =
   addResponseDocument @"203"
 
-addResponseSchema204 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response204 : tags)
-addResponseSchema204 =
-  addNoResponseSchema @"204"
+addResponse204 ::
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response204 : tags)
+addResponse204 =
+  addNoResponseBody @"204"
 
-addResponseSchema205 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response205 : tags)
-addResponseSchema205 =
-  addNoResponseSchema @"205"
+addResponse205 ::
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response205 : tags)
+addResponse205 =
+  addNoResponseBody @"205"
 
-addResponseSchema206 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response206 a : tags)
-addResponseSchema206 =
-  addResponseSchema @"206"
+addResponseBody206 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response206 a : tags)
+addResponseBody206 =
+  addResponseBody @"206"
 
 addResponseDocument206 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response206 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response206 Document : tags)
 addResponseDocument206 =
   addResponseDocument @"206"
 
-addResponseSchema300 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response300 a : tags)
-addResponseSchema300 =
-  addResponseSchema @"300"
+addResponseBody300 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response300 a : tags)
+addResponseBody300 =
+  addResponseBody @"300"
 
 addResponseDocument300 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response300 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response300 Document : tags)
 addResponseDocument300 =
   addResponseDocument @"300"
 
-addResponseSchema301 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response301 a : tags)
-addResponseSchema301 =
-  addResponseSchema @"301"
+addResponseBody301 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response301 a : tags)
+addResponseBody301 =
+  addResponseBody @"301"
 
 addResponseDocument301 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response301 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response301 Document : tags)
 addResponseDocument301 =
   addResponseDocument @"301"
 
-addResponseSchema302 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response302 a : tags)
-addResponseSchema302 =
-  addResponseSchema @"302"
+addResponseBody302 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response302 a : tags)
+addResponseBody302 =
+  addResponseBody @"302"
 
 addResponseDocument302 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response302 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response302 Document : tags)
 addResponseDocument302 =
   addResponseDocument @"302"
 
-addResponseSchema303 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response303 a : tags)
-addResponseSchema303 =
-  addResponseSchema @"303"
+addResponseBody303 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response303 a : tags)
+addResponseBody303 =
+  addResponseBody @"303"
 
 addResponseDocument303 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response303 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response303 Document : tags)
 addResponseDocument303 =
   addResponseDocument @"303"
 
-addResponseSchema304 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response304 : tags)
-addResponseSchema304 =
-  addNoResponseSchema @"304"
+addResponse304 ::
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response304 : tags)
+addResponse304 =
+  addNoResponseBody @"304"
 
-addResponseSchema305 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response305 a : tags)
-addResponseSchema305 =
-  addResponseSchema @"305"
+addResponseBody305 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response305 a : tags)
+addResponseBody305 =
+  addResponseBody @"305"
 
 addResponseDocument305 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response305 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response305 Document : tags)
 addResponseDocument305 =
   addResponseDocument @"305"
 
-addResponseSchema307 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response307 a : tags)
-addResponseSchema307 =
-  addResponseSchema @"307"
+addResponseBody307 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response307 a : tags)
+addResponseBody307 =
+  addResponseBody @"307"
 
 addResponseDocument307 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response307 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response307 Document : tags)
 addResponseDocument307 =
   addResponseDocument @"307"
 
-addResponseSchema308 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response308 a : tags)
-addResponseSchema308 =
-  addResponseSchema @"308"
+addResponseBody308 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response308 a : tags)
+addResponseBody308 =
+  addResponseBody @"308"
 
 addResponseDocument308 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response308 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response308 Document : tags)
 addResponseDocument308 =
   addResponseDocument @"308"
 
-addResponseSchema400 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response400 a : tags)
-addResponseSchema400 =
-  addResponseSchema @"400"
+addResponseBody400 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response400 a : tags)
+addResponseBody400 =
+  addResponseBody @"400"
 
 addResponseDocument400 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response400 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response400 Document : tags)
 addResponseDocument400 =
   addResponseDocument @"400"
 
-addResponseSchema401 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response401 a : tags)
-addResponseSchema401 =
-  addResponseSchema @"401"
+addResponseBody401 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response401 a : tags)
+addResponseBody401 =
+  addResponseBody @"401"
 
 addResponseDocument401 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response401 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response401 Document : tags)
 addResponseDocument401 =
   addResponseDocument @"401"
 
-addResponseSchema402 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response402 a : tags)
-addResponseSchema402 =
-  addResponseSchema @"402"
+addResponseBody402 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response402 a : tags)
+addResponseBody402 =
+  addResponseBody @"402"
 
 addResponseDocument402 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response402 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response402 Document : tags)
 addResponseDocument402 =
   addResponseDocument @"402"
 
-addResponseSchema403 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response403 a : tags)
-addResponseSchema403 =
-  addResponseSchema @"403"
+addResponseBody403 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response403 a : tags)
+addResponseBody403 =
+  addResponseBody @"403"
 
 addResponseDocument403 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response403 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response403 Document : tags)
 addResponseDocument403 =
   addResponseDocument @"403"
 
-addResponseSchema404 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response404 a : tags)
-addResponseSchema404 =
-  addResponseSchema @"404"
+addResponseBody404 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response404 a : tags)
+addResponseBody404 =
+  addResponseBody @"404"
 
 addResponseDocument404 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response404 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response404 Document : tags)
 addResponseDocument404 =
   addResponseDocument @"404"
 
-addResponseSchema405 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response405 a : tags)
-addResponseSchema405 =
-  addResponseSchema @"405"
+addResponseBody405 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response405 a : tags)
+addResponseBody405 =
+  addResponseBody @"405"
 
 addResponseDocument405 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response405 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response405 Document : tags)
 addResponseDocument405 =
   addResponseDocument @"405"
 
-addResponseSchema406 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response406 a : tags)
-addResponseSchema406 =
-  addResponseSchema @"406"
+addResponseBody406 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response406 a : tags)
+addResponseBody406 =
+  addResponseBody @"406"
 
 addResponseDocument406 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response406 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response406 Document : tags)
 addResponseDocument406 =
   addResponseDocument @"406"
 
-addResponseSchema407 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response407 a : tags)
-addResponseSchema407 =
-  addResponseSchema @"407"
+addResponseBody407 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response407 a : tags)
+addResponseBody407 =
+  addResponseBody @"407"
 
 addResponseDocument407 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response407 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response407 Document : tags)
 addResponseDocument407 =
   addResponseDocument @"407"
 
-addResponseSchema408 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response408 a : tags)
-addResponseSchema408 =
-  addResponseSchema @"408"
+addResponseBody408 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response408 a : tags)
+addResponseBody408 =
+  addResponseBody @"408"
 
 addResponseDocument408 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response408 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response408 Document : tags)
 addResponseDocument408 =
   addResponseDocument @"408"
 
-addResponseSchema409 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response409 a : tags)
-addResponseSchema409 =
-  addResponseSchema @"409"
+addResponseBody409 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response409 a : tags)
+addResponseBody409 =
+  addResponseBody @"409"
 
 addResponseDocument409 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response409 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response409 Document : tags)
 addResponseDocument409 =
   addResponseDocument @"409"
 
-addResponseSchema410 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response410 a : tags)
-addResponseSchema410 =
-  addResponseSchema @"410"
+addResponseBody410 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response410 a : tags)
+addResponseBody410 =
+  addResponseBody @"410"
 
 addResponseDocument410 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response410 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response410 Document : tags)
 addResponseDocument410 =
   addResponseDocument @"410"
 
-addResponseSchema411 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response411 a : tags)
-addResponseSchema411 =
-  addResponseSchema @"411"
+addResponseBody411 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response411 a : tags)
+addResponseBody411 =
+  addResponseBody @"411"
 
 addResponseDocument411 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response411 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response411 Document : tags)
 addResponseDocument411 =
   addResponseDocument @"411"
 
-addResponseSchema412 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response412 a : tags)
-addResponseSchema412 =
-  addResponseSchema @"412"
+addResponseBody412 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response412 a : tags)
+addResponseBody412 =
+  addResponseBody @"412"
 
 addResponseDocument412 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response412 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response412 Document : tags)
 addResponseDocument412 =
   addResponseDocument @"412"
 
-addResponseSchema413 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response413 a : tags)
-addResponseSchema413 =
-  addResponseSchema @"413"
+addResponseBody413 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response413 a : tags)
+addResponseBody413 =
+  addResponseBody @"413"
 
 addResponseDocument413 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response413 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response413 Document : tags)
 addResponseDocument413 =
   addResponseDocument @"413"
 
-addResponseSchema414 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response414 a : tags)
-addResponseSchema414 =
-  addResponseSchema @"414"
+addResponseBody414 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response414 a : tags)
+addResponseBody414 =
+  addResponseBody @"414"
 
 addResponseDocument414 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response414 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response414 Document : tags)
 addResponseDocument414 =
   addResponseDocument @"414"
 
-addResponseSchema415 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response415 a : tags)
-addResponseSchema415 =
-  addResponseSchema @"415"
+addResponseBody415 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response415 a : tags)
+addResponseBody415 =
+  addResponseBody @"415"
 
 addResponseDocument415 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response415 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response415 Document : tags)
 addResponseDocument415 =
   addResponseDocument @"415"
 
-addResponseSchema416 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response416 a : tags)
-addResponseSchema416 =
-  addResponseSchema @"416"
+addResponseBody416 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response416 a : tags)
+addResponseBody416 =
+  addResponseBody @"416"
 
 addResponseDocument416 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response416 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response416 Document : tags)
 addResponseDocument416 =
   addResponseDocument @"416"
 
-addResponseSchema417 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response417 a : tags)
-addResponseSchema417 =
-  addResponseSchema @"417"
+addResponseBody417 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response417 a : tags)
+addResponseBody417 =
+  addResponseBody @"417"
 
 addResponseDocument417 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response417 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response417 Document : tags)
 addResponseDocument417 =
   addResponseDocument @"417"
 
-addResponseSchema418 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response418 a : tags)
-addResponseSchema418 =
-  addResponseSchema @"418"
+addResponseBody418 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response418 a : tags)
+addResponseBody418 =
+  addResponseBody @"418"
 
 addResponseDocument418 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response418 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response418 Document : tags)
 addResponseDocument418 =
   addResponseDocument @"418"
 
-addResponseSchema422 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response422 a : tags)
-addResponseSchema422 =
-  addResponseSchema @"422"
+addResponseBody422 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response422 a : tags)
+addResponseBody422 =
+  addResponseBody @"422"
 
 addResponseDocument422 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response422 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response422 Document : tags)
 addResponseDocument422 =
   addResponseDocument @"422"
 
-addResponseSchema428 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response428 a : tags)
-addResponseSchema428 =
-  addResponseSchema @"428"
+addResponseBody428 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response428 a : tags)
+addResponseBody428 =
+  addResponseBody @"428"
 
 addResponseDocument428 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response428 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response428 Document : tags)
 addResponseDocument428 =
   addResponseDocument @"428"
 
-addResponseSchema429 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response429 a : tags)
-addResponseSchema429 =
-  addResponseSchema @"429"
+addResponseBody429 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response429 a : tags)
+addResponseBody429 =
+  addResponseBody @"429"
 
 addResponseDocument429 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response429 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response429 Document : tags)
 addResponseDocument429 =
   addResponseDocument @"429"
 
-addResponseSchema431 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response431 a : tags)
-addResponseSchema431 =
-  addResponseSchema @"431"
+addResponseBody431 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response431 a : tags)
+addResponseBody431 =
+  addResponseBody @"431"
 
 addResponseDocument431 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response431 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response431 Document : tags)
 addResponseDocument431 =
   addResponseDocument @"431"
 
-addResponseSchema500 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response500 a : tags)
-addResponseSchema500 =
-  addResponseSchema @"500"
+addResponseBody500 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response500 a : tags)
+addResponseBody500 =
+  addResponseBody @"500"
 
 addResponseDocument500 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response500 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response500 Document : tags)
 addResponseDocument500 =
   addResponseDocument @"500"
 
-addResponseSchema501 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response501 a : tags)
-addResponseSchema501 =
-  addResponseSchema @"501"
+addResponseBody501 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response501 a : tags)
+addResponseBody501 =
+  addResponseBody @"501"
 
 addResponseDocument501 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response501 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response501 Document : tags)
 addResponseDocument501 =
   addResponseDocument @"501"
 
-addResponseSchema502 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response502 a : tags)
-addResponseSchema502 =
-  addResponseSchema @"502"
+addResponseBody502 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response502 a : tags)
+addResponseBody502 =
+  addResponseBody @"502"
 
 addResponseDocument502 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response502 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response502 Document : tags)
 addResponseDocument502 =
   addResponseDocument @"502"
 
-addResponseSchema503 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response503 a : tags)
-addResponseSchema503 =
-  addResponseSchema @"503"
+addResponseBody503 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response503 a : tags)
+addResponseBody503 =
+  addResponseBody @"503"
 
 addResponseDocument503 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response503 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response503 Document : tags)
 addResponseDocument503 =
   addResponseDocument @"503"
 
-addResponseSchema504 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response504 a : tags)
-addResponseSchema504 =
-  addResponseSchema @"504"
+addResponseBody504 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response504 a : tags)
+addResponseBody504 =
+  addResponseBody @"504"
 
 addResponseDocument504 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response504 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response504 Document : tags)
 addResponseDocument504 =
   addResponseDocument @"504"
 
-addResponseSchema505 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response505 a : tags)
-addResponseSchema505 =
-  addResponseSchema @"505"
+addResponseBody505 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response505 a : tags)
+addResponseBody505 =
+  addResponseBody @"505"
 
 addResponseDocument505 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response505 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response505 Document : tags)
 addResponseDocument505 =
   addResponseDocument @"505"
 
-addResponseSchema511 ::
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response511 a : tags)
-addResponseSchema511 =
-  addResponseSchema @"511"
+addResponseBody511 ::
+  ContentType ->
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response511 a : tags)
+addResponseBody511 =
+  addResponseBody @"511"
 
 addResponseDocument511 ::
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder (Response511 Document : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder (Response511 Document : tags)
 addResponseDocument511 =
   addResponseDocument @"511"
 
