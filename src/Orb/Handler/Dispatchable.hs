@@ -18,6 +18,7 @@ import Shrubbery qualified as S
 import UnliftIO qualified
 
 import Orb.Handler.Handler qualified as Handler
+import Orb.HasLogger qualified as HasLogger
 import Orb.HasRequest qualified as HasRequest
 import Orb.HasRespond qualified as HasRespond
 
@@ -26,7 +27,8 @@ class Dispatchable m a where
 
 instance
   {-# OVERLAPPABLE #-}
-  ( HasRequest.HasRequest m
+  ( HasLogger.HasLogger m
+  , HasRequest.HasRequest m
   , HasRespond.HasRespond m
   , UnliftIO.MonadUnliftIO m
   , Handler.HasHandler route

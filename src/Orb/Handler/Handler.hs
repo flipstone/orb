@@ -30,6 +30,7 @@ import UnliftIO qualified
 
 import Orb.Handler.PermissionAction qualified as PA
 import Orb.Handler.PermissionError qualified as PE
+import Orb.HasLogger qualified as HasLogger
 import Orb.HasRequest qualified as HasRequest
 import Orb.HasRespond qualified as HasRespond
 import Orb.Response qualified as Response
@@ -91,6 +92,7 @@ data RequestBodySchema body tags where
 
 runHandler ::
   ( HasHandler route
+  , HasLogger.HasLogger m
   , HasRequest.HasRequest m
   , HasRespond.HasRespond m
   , UnliftIO.MonadUnliftIO m
@@ -129,7 +131,8 @@ runPermissionAction handler route body = do
     Right permissionResult -> handleRequest handler route body permissionResult
 
 noRequestBodyHandler ::
-  ( HasRespond.HasRespond m
+  ( HasLogger.HasLogger m
+  , HasRespond.HasRespond m
   , Response.Has500Response tags
   , UnliftIO.MonadUnliftIO m
   ) =>
@@ -141,11 +144,9 @@ noRequestBodyHandler schemas action = do
   response <-
     case errOrResponse of
       Right response -> pure response
-      Left _exception -> do
-        -- TODO: Implement logging such that it works for any Monad m
-        --
+      Left exception -> do
+        HasLogger.log exception
         Response.return500 Response.InternalServerError
-
   let
     responseData = encodeResponse schemas response
     contentTypeHeader =
@@ -162,6 +163,7 @@ noRequestBodyHandler schemas action = do
 requestBodyHandler ::
   ( Response.Has422Response tags
   , Response.Has500Response tags
+  , HasLogger.HasLogger m
   , HasRequest.HasRequest m
   , HasRespond.HasRespond m
   , UnliftIO.MonadUnliftIO m
