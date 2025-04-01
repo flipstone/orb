@@ -36,6 +36,7 @@ library
       Orb.Handler.Handler
       Orb.Handler.PermissionAction
       Orb.Handler.PermissionError
+      Orb.HasLogger
       Orb.HasRequest
       Orb.HasRespond
       Orb.Response
