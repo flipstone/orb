@@ -26,13 +26,13 @@ packages:
 extra-deps:
 # Fleece
 - github: flipstone/json-fleece
-  commit: b670750d38acfd93b3ff1300f8588de96d461e42
+  commit: 83e675bcb56e86955d0472021ec731e2ebff1ef4
   subdirs:
     - json-fleece-aeson
     - json-fleece-core
 # Shrubbery
 - github: flipstone/shrubbery
-  commit: 40a2bbe88ac99ec6fbad7a40e331a1f624e70850
+  commit: ae5c282af3029179d5ab43a927aecbc8e44971e4
 
 # Override default flag values for local packages and extra-deps
 flags:
