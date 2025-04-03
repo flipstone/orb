@@ -7,95 +7,95 @@
 {-# LANGUAGE TypeOperators #-}
 
 module Orb.Response.StatusCodes
-  ( addResponseSchema100
-  , addResponseSchema101
+  ( addResponse100
+  , addResponse101
   , addResponseDocument200
-  , addResponseSchema200
+  , addResponseBody200
   , addResponseDocument201
-  , addResponseSchema201
+  , addResponseBody201
   , addResponseDocument202
-  , addResponseSchema202
+  , addResponseBody202
   , addResponseDocument203
-  , addResponseSchema203
-  , addResponseSchema204
-  , addResponseSchema205
+  , addResponseBody203
+  , addResponse204
+  , addResponse205
   , addResponseDocument206
-  , addResponseSchema206
+  , addResponseBody206
   , addResponseDocument300
-  , addResponseSchema300
+  , addResponseBody300
   , addResponseDocument301
-  , addResponseSchema301
+  , addResponseBody301
   , addResponseDocument302
-  , addResponseSchema302
+  , addResponseBody302
   , addResponseDocument303
-  , addResponseSchema303
-  , addResponseSchema304
+  , addResponseBody303
+  , addResponse304
   , addResponseDocument305
-  , addResponseSchema305
+  , addResponseBody305
   , addResponseDocument307
-  , addResponseSchema307
+  , addResponseBody307
   , addResponseDocument308
-  , addResponseSchema308
+  , addResponseBody308
   , addResponseDocument400
-  , addResponseSchema400
+  , addResponseBody400
   , addResponseDocument401
-  , addResponseSchema401
+  , addResponseBody401
   , addResponseDocument402
-  , addResponseSchema402
+  , addResponseBody402
   , addResponseDocument403
-  , addResponseSchema403
+  , addResponseBody403
   , addResponseDocument404
-  , addResponseSchema404
+  , addResponseBody404
   , addResponseDocument405
-  , addResponseSchema405
+  , addResponseBody405
   , addResponseDocument406
-  , addResponseSchema406
+  , addResponseBody406
   , addResponseDocument407
-  , addResponseSchema407
+  , addResponseBody407
   , addResponseDocument408
-  , addResponseSchema408
+  , addResponseBody408
   , addResponseDocument409
-  , addResponseSchema409
+  , addResponseBody409
   , addResponseDocument410
-  , addResponseSchema410
+  , addResponseBody410
   , addResponseDocument411
-  , addResponseSchema411
+  , addResponseBody411
   , addResponseDocument412
-  , addResponseSchema412
+  , addResponseBody412
   , addResponseDocument413
-  , addResponseSchema413
+  , addResponseBody413
   , addResponseDocument414
-  , addResponseSchema414
+  , addResponseBody414
   , addResponseDocument415
-  , addResponseSchema415
+  , addResponseBody415
   , addResponseDocument416
-  , addResponseSchema416
+  , addResponseBody416
   , addResponseDocument417
-  , addResponseSchema417
+  , addResponseBody417
   , addResponseDocument418
-  , addResponseSchema418
+  , addResponseBody418
   , addResponseDocument422
-  , addResponseSchema422
+  , addResponseBody422
   , addResponseDocument428
-  , addResponseSchema428
+  , addResponseBody428
   , addResponseDocument429
-  , addResponseSchema429
+  , addResponseBody429
   , addResponseDocument431
-  , addResponseSchema431
+  , addResponseBody431
   , addResponseDocument500
-  , addResponseSchema500
+  , addResponseBody500
   , addResponseDocument501
-  , addResponseSchema501
+  , addResponseBody501
   , addResponseDocument502
-  , addResponseSchema502
+  , addResponseBody502
   , addResponseDocument503
-  , addResponseSchema503
+  , addResponseBody503
   , addResponseDocument504
-  , addResponseSchema504
+  , addResponseBody504
   , addResponseDocument505
-  , addResponseSchema505
+  , addResponseBody505
   , addResponseDocument511
-  , addResponseSchema511
+  , addResponseBody511
   , Response100
   , Response101
   , Response200
@@ -241,36 +241,41 @@ module Orb.Response.StatusCodes
 where
 
 import Data.ByteString.Char8 qualified as BS8
+import Data.ByteString.Lazy qualified as LBS
 import Data.CaseInsensitive qualified as CI
 import Data.Map.Strict qualified as Map
 import Data.Proxy (Proxy (Proxy))
-import Fleece.Aeson.Encoder (encode)
-import Fleece.Core qualified as FC
 import GHC.TypeLits (KnownNat)
 import Network.HTTP.Types qualified as HTTP
 import Shrubbery (type (@=))
 import Shrubbery qualified as S
 
+import Orb.Response.ContentType (ContentType)
 import Orb.Response.Document (Document (..))
-import Orb.Response.Response (ResponseData (..), ResponseSchema (..), ResponseSchemasBuilder (..))
+import Orb.Response.Response (ResponseBodiesBuilder (..), ResponseBody (..), ResponseData (..))
 import Orb.Response.Schemas (NoContent (..))
 
 {- | Adds a typed response for a given status code to the
-    'ResponseSchemasBuilder'.
+    'ResponseBodiesBuilder'.
 
 This function associates some type @a@ to a response code identified by the
-type-level @tag@. The response body will be the JSON encoding of the type as
-encoded by Fleece, and the @Content-Type@ will be set to @application/json@.
+type-level @tag@. The response body will be the encoding of the type as encoded
+by the provided encoding function, and the @Content-Type@ will be set with the
+provided 'ContentType'.
 
 @since 0.1.0
 -}
-addResponseSchema ::
+addResponseBody ::
   forall tag tags a.
   KnownHTTPStatus tag =>
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder ((tag @= (a, HTTP.ResponseHeaders)) : tags)
-addResponseSchema schema builder =
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder ((tag @= (a, HTTP.ResponseHeaders)) : tags)
+addResponseBody contentType encoder builder =
   let
     proxyTag :: Proxy tag
     proxyTag = Proxy
@@ -282,20 +287,23 @@ addResponseSchema schema builder =
     runEncoder (value, headers) =
       ResponseData
         { responseDataStatus = status
-        , responseDataBytes = encode schema value
-        , responseDataContentType = Just $ BS8.pack "application/json"
+        , responseDataBytes = encoder value
+        , responseDataContentType = Just contentType
         , responseDataExtraHeaders = headers
         }
   in
-    ResponseSchemasBuilder
+    ResponseBodiesBuilder
       { encodeResponseBranchesBuilder =
           S.taggedBranch @tag runEncoder (encodeResponseBranchesBuilder builder)
       , responseStatusMapBuilder =
-          Map.insert status (ResponseSchema schema) (responseStatusMapBuilder builder)
+          Map.insert
+            status
+            (ResponseContent contentType encoder)
+            (responseStatusMapBuilder builder)
       }
 
 {- | Adds a document response for a given status code to the
-'ResponseSchemasBuilder'.
+'ResponseBodiesBuilder'.
 
 This function associates a 'Document' to a response code identified by the
 type-level @tag@. The response body will be the raw content from the provided
@@ -308,8 +316,8 @@ file name.
 addResponseDocument ::
   forall tag tags.
   KnownHTTPStatus tag =>
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder ((tag @= (Document, HTTP.ResponseHeaders)) : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder ((tag @= (Document, HTTP.ResponseHeaders)) : tags)
 addResponseDocument builder =
   let
     proxyTag :: Proxy tag
@@ -330,7 +338,7 @@ addResponseDocument builder =
               : headers
         }
   in
-    ResponseSchemasBuilder
+    ResponseBodiesBuilder
       { encodeResponseBranchesBuilder =
           S.taggedBranch @tag encodeDocument (encodeResponseBranchesBuilder builder)
       , responseStatusMapBuilder =
@@ -338,7 +346,7 @@ addResponseDocument builder =
       }
 
 {- | Associates a /no-content/ type response with a given status code in the
-'ResponseSchemasBuilder'.
+'ResponseBodiesBuilder'.
 
 When a no-content response is constructed this way, the response body will be
 empty, and the @Content-Type@ header will not be set.
@@ -348,8 +356,8 @@ empty, and the @Content-Type@ header will not be set.
 addNoResponseSchema ::
   forall tag tags.
   KnownHTTPStatus tag =>
-  ResponseSchemasBuilder tags ->
-  ResponseSchemasBuilder ((tag @= (NoContent, HTTP.ResponseHeaders)) : tags)
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder ((tag @= (NoContent, HTTP.ResponseHeaders)) : tags)
 addNoResponseSchema builder =
   let
     proxyTag :: Proxy tag
@@ -367,11 +375,11 @@ addNoResponseSchema builder =
         , responseDataExtraHeaders = headers
         }
   in
-    ResponseSchemasBuilder
+    ResponseBodiesBuilder
       { encodeResponseBranchesBuilder =
           S.taggedBranch @tag runEncoder (encodeResponseBranchesBuilder builder)
       , responseStatusMapBuilder =
-          Map.insert status NoResponseSchema (responseStatusMapBuilder builder)
+          Map.insert status EmptyResponseBody (responseStatusMapBuilder builder)
       }
 
 {- | A type class that links a type-level HTTP status code @tag@ to its
@@ -1099,18 +1107,18 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema100
-  $ noResponseSchemas
+responseBodies
+  . addResponse100
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema100 ::
+addResponse100 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response100 : responseCodes)
-addResponseSchema100 =
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response100 : responseCodes)
+addResponse100 =
   addNoResponseSchema @"100"
 
 {- | Appends an HTTP 101 (Switching Protocols) no-content response to the set
@@ -1119,18 +1127,18 @@ of possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema101
-  $ noResponseSchemas
+responseBodies
+  . addResponse101
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema101 ::
+addResponse101 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response101 : responseCodes)
-addResponseSchema101 =
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response101 : responseCodes)
+addResponse101 =
   addNoResponseSchema @"101"
 
 {- | Appends an HTTP 200 (OK) typed response to the set of possible responses.
@@ -1138,20 +1146,24 @@ addResponseSchema101 =
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema200 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody200 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema200 ::
+addResponseBody200 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response200 a : responseCodes)
-addResponseSchema200 =
-  addResponseSchema @"200"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response200 a : responseCodes)
+addResponseBody200 =
+  addResponseBody @"200"
 
 {- | Appends an HTTP 200 (OK) document response to the set of possible
 responses.
@@ -1159,17 +1171,17 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument200
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument200 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response200 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response200 Document : responseCodes)
 addResponseDocument200 =
   addResponseDocument @"200"
 
@@ -1179,20 +1191,24 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema201 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody201 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema201 ::
+addResponseBody201 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response201 a : responseCodes)
-addResponseSchema201 =
-  addResponseSchema @"201"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response201 a : responseCodes)
+addResponseBody201 =
+  addResponseBody @"201"
 
 {- | Appends an HTTP 201 (Created) document response to the set of possible
 responses.
@@ -1200,17 +1216,17 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument201
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument201 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response201 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response201 Document : responseCodes)
 addResponseDocument201 =
   addResponseDocument @"201"
 
@@ -1220,20 +1236,24 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema202 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody202 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema202 ::
+addResponseBody202 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response202 a : responseCodes)
-addResponseSchema202 =
-  addResponseSchema @"202"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response202 a : responseCodes)
+addResponseBody202 =
+  addResponseBody @"202"
 
 {- | Appends an HTTP 202 (Accepted) document response to the set of possible
 responses.
@@ -1241,17 +1261,17 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument202
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument202 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response202 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response202 Document : responseCodes)
 addResponseDocument202 =
   addResponseDocument @"202"
 
@@ -1261,20 +1281,24 @@ set of possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema203 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody203 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema203 ::
+addResponseBody203 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response203 a : responseCodes)
-addResponseSchema203 =
-  addResponseSchema @"203"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response203 a : responseCodes)
+addResponseBody203 =
+  addResponseBody @"203"
 
 {- | Appends an HTTP 203 (Non-Authoritative Information) document response to
 the set of possible responses.
@@ -1282,17 +1306,17 @@ the set of possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument203
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument203 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response203 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response203 Document : responseCodes)
 addResponseDocument203 =
   addResponseDocument @"203"
 
@@ -1302,17 +1326,17 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema204 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponse204 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema204 ::
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response204 : responseCodes)
-addResponseSchema204 =
+addResponse204 ::
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response204 : responseCodes)
+addResponse204 =
   addNoResponseSchema @"204"
 
 {- | Appends an HTTP 205 (Reset Content) no-content response to the set of
@@ -1321,17 +1345,17 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema205
-  $ noResponseSchemas
+responseBodies
+  . addResponse205
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema205 ::
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response205 : responseCodes)
-addResponseSchema205 =
+addResponse205 ::
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response205 : responseCodes)
+addResponse205 =
   addNoResponseSchema @"205"
 
 {- | Appends an HTTP 206 (Partial Content) typed response to the set of
@@ -1340,20 +1364,24 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema206 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody206 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema206 ::
+addResponseBody206 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response206 a : responseCodes)
-addResponseSchema206 =
-  addResponseSchema @"206"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response206 a : responseCodes)
+addResponseBody206 =
+  addResponseBody @"206"
 
 {- | Appends an HTTP 206 (Partial Content) document response to the set of
 possible responses.
@@ -1361,17 +1389,17 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument206
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument206 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response206 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response206 Document : responseCodes)
 addResponseDocument206 =
   addResponseDocument @"206"
 
@@ -1381,20 +1409,24 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema300 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody300 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema300 ::
+addResponseBody300 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response300 a : responseCodes)
-addResponseSchema300 =
-  addResponseSchema @"300"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response300 a : responseCodes)
+addResponseBody300 =
+  addResponseBody @"300"
 
 {- | Appends an HTTP 300 (Multiple Choices) document response to the set of
 possible responses.
@@ -1402,17 +1434,17 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument300
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument300 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response300 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response300 Document : responseCodes)
 addResponseDocument300 =
   addResponseDocument @"300"
 
@@ -1422,20 +1454,24 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema301 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody301 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema301 ::
+addResponseBody301 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response301 a : responseCodes)
-addResponseSchema301 =
-  addResponseSchema @"301"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response301 a : responseCodes)
+addResponseBody301 =
+  addResponseBody @"301"
 
 {- | Appends an HTTP 301 (Moved Permanently) document response to the set of
 possible responses.
@@ -1443,17 +1479,17 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument301
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument301 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response301 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response301 Document : responseCodes)
 addResponseDocument301 =
   addResponseDocument @"301"
 
@@ -1463,20 +1499,24 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema302 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody302 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema302 ::
+addResponseBody302 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response302 a : responseCodes)
-addResponseSchema302 =
-  addResponseSchema @"302"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response302 a : responseCodes)
+addResponseBody302 =
+  addResponseBody @"302"
 
 {- | Appends an HTTP 302 (Found) document response to the set of possible
 responses.
@@ -1484,17 +1524,17 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument302
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument302 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response302 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response302 Document : responseCodes)
 addResponseDocument302 =
   addResponseDocument @"302"
 
@@ -1504,20 +1544,24 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema303 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody303 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema303 ::
+addResponseBody303 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response303 a : responseCodes)
-addResponseSchema303 =
-  addResponseSchema @"303"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response303 a : responseCodes)
+addResponseBody303 =
+  addResponseBody @"303"
 
 {- | Appends an HTTP 303 (See Other) document response to the set of possible
 responses.
@@ -1525,17 +1569,17 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument303
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument303 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response303 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response303 Document : responseCodes)
 addResponseDocument303 =
   addResponseDocument @"303"
 
@@ -1545,17 +1589,17 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema304 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponse304 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema304 ::
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response304 : responseCodes)
-addResponseSchema304 =
+addResponse304 ::
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response304 : responseCodes)
+addResponse304 =
   addNoResponseSchema @"304"
 
 {- | Appends an HTTP 305 (Use Proxy) typed response to the set of possible
@@ -1564,20 +1608,24 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema305 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody305 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema305 ::
+addResponseBody305 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response305 a : responseCodes)
-addResponseSchema305 =
-  addResponseSchema @"305"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response305 a : responseCodes)
+addResponseBody305 =
+  addResponseBody @"305"
 
 {- | Appends an HTTP 305 (Use Proxy) document response to the set of possible
 responses.
@@ -1585,17 +1633,17 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument305
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument305 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response305 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response305 Document : responseCodes)
 addResponseDocument305 =
   addResponseDocument @"305"
 
@@ -1605,20 +1653,24 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema307 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody307 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema307 ::
+addResponseBody307 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response307 a : responseCodes)
-addResponseSchema307 =
-  addResponseSchema @"307"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response307 a : responseCodes)
+addResponseBody307 =
+  addResponseBody @"307"
 
 {- | Appends an HTTP 307 (Temporary Redirect) document response to the set of
 possible responses.
@@ -1626,17 +1678,17 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument307
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument307 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response307 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response307 Document : responseCodes)
 addResponseDocument307 =
   addResponseDocument @"307"
 
@@ -1646,20 +1698,24 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema308 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody308 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema308 ::
+addResponseBody308 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response308 a : responseCodes)
-addResponseSchema308 =
-  addResponseSchema @"308"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response308 a : responseCodes)
+addResponseBody308 =
+  addResponseBody @"308"
 
 {- | Appends an HTTP 308 (Permanent Redirect) document response to the set of
 possible responses.
@@ -1667,17 +1723,17 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument308
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument308 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response308 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response308 Document : responseCodes)
 addResponseDocument308 =
   addResponseDocument @"308"
 
@@ -1687,20 +1743,24 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema400 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody400 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema400 ::
+addResponseBody400 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response400 a : responseCodes)
-addResponseSchema400 =
-  addResponseSchema @"400"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response400 a : responseCodes)
+addResponseBody400 =
+  addResponseBody @"400"
 
 {- | Appends an HTTP 400 (Bad Request) document response to the set of possible
 responses.
@@ -1708,17 +1768,17 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument400
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument400 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response400 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response400 Document : responseCodes)
 addResponseDocument400 =
   addResponseDocument @"400"
 
@@ -1728,20 +1788,24 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema401 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody401 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema401 ::
+addResponseBody401 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response401 a : responseCodes)
-addResponseSchema401 =
-  addResponseSchema @"401"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response401 a : responseCodes)
+addResponseBody401 =
+  addResponseBody @"401"
 
 {- | Appends an HTTP 401 (Unauthorized) document response to the set of
 possible responses.
@@ -1749,17 +1813,17 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument401
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument401 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response401 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response401 Document : responseCodes)
 addResponseDocument401 =
   addResponseDocument @"401"
 
@@ -1769,20 +1833,24 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema402 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody402 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema402 ::
+addResponseBody402 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response402 a : responseCodes)
-addResponseSchema402 =
-  addResponseSchema @"402"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response402 a : responseCodes)
+addResponseBody402 =
+  addResponseBody @"402"
 
 {- | Appends an HTTP 402 (Payment Required) document response to the set of
 possible responses.
@@ -1790,17 +1858,17 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument402
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument402 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response402 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response402 Document : responseCodes)
 addResponseDocument402 =
   addResponseDocument @"402"
 
@@ -1810,20 +1878,24 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema403 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody403 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema403 ::
+addResponseBody403 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response403 a : responseCodes)
-addResponseSchema403 =
-  addResponseSchema @"403"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response403 a : responseCodes)
+addResponseBody403 =
+  addResponseBody @"403"
 
 {- | Appends an HTTP 403 (Forbidden) document response to the set of possible
 responses.
@@ -1831,17 +1903,17 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument403
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument403 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response403 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response403 Document : responseCodes)
 addResponseDocument403 =
   addResponseDocument @"403"
 
@@ -1851,20 +1923,24 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema404 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody404 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema404 ::
+addResponseBody404 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response404 a : responseCodes)
-addResponseSchema404 =
-  addResponseSchema @"404"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response404 a : responseCodes)
+addResponseBody404 =
+  addResponseBody @"404"
 
 {- | Appends an HTTP 404 (Not Found) document response to the set of possible
 responses.
@@ -1872,17 +1948,17 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument404
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument404 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response404 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response404 Document : responseCodes)
 addResponseDocument404 =
   addResponseDocument @"404"
 
@@ -1892,20 +1968,24 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema405 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody405 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema405 ::
+addResponseBody405 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response405 a : responseCodes)
-addResponseSchema405 =
-  addResponseSchema @"405"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response405 a : responseCodes)
+addResponseBody405 =
+  addResponseBody @"405"
 
 {- | Appends an HTTP 405 (Method Not Allowed) document response to the set of
 possible responses.
@@ -1913,17 +1993,17 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument405
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument405 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response405 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response405 Document : responseCodes)
 addResponseDocument405 =
   addResponseDocument @"405"
 
@@ -1933,20 +2013,24 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema406 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody406 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema406 ::
+addResponseBody406 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response406 a : responseCodes)
-addResponseSchema406 =
-  addResponseSchema @"406"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response406 a : responseCodes)
+addResponseBody406 =
+  addResponseBody @"406"
 
 {- | Appends an HTTP 406 (Not Acceptable) document response to the set of
 possible responses.
@@ -1954,17 +2038,17 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument406
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument406 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response406 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response406 Document : responseCodes)
 addResponseDocument406 =
   addResponseDocument @"406"
 
@@ -1974,20 +2058,24 @@ set of possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema407 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody407 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema407 ::
+addResponseBody407 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response407 a : responseCodes)
-addResponseSchema407 =
-  addResponseSchema @"407"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response407 a : responseCodes)
+addResponseBody407 =
+  addResponseBody @"407"
 
 {- | Appends an HTTP 407 (Proxy Authentication Required) document response to
 the set of possible responses.
@@ -1995,17 +2083,17 @@ the set of possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument407
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument407 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response407 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response407 Document : responseCodes)
 addResponseDocument407 =
   addResponseDocument @"407"
 
@@ -2015,20 +2103,24 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema408 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody408 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema408 ::
+addResponseBody408 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response408 a : responseCodes)
-addResponseSchema408 =
-  addResponseSchema @"408"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response408 a : responseCodes)
+addResponseBody408 =
+  addResponseBody @"408"
 
 {- | Appends an HTTP 408 (Request Timeout) document response to the set of
 possible responses.
@@ -2036,17 +2128,17 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument408
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument408 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response408 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response408 Document : responseCodes)
 addResponseDocument408 =
   addResponseDocument @"408"
 
@@ -2056,20 +2148,24 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema409 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody409 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema409 ::
+addResponseBody409 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response409 a : responseCodes)
-addResponseSchema409 =
-  addResponseSchema @"409"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response409 a : responseCodes)
+addResponseBody409 =
+  addResponseBody @"409"
 
 {- | Appends an HTTP 409 (Conflict) document response to the set of possible
 responses.
@@ -2077,17 +2173,17 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument409
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument409 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response409 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response409 Document : responseCodes)
 addResponseDocument409 =
   addResponseDocument @"409"
 
@@ -2097,20 +2193,24 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema410 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody410 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema410 ::
+addResponseBody410 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response410 a : responseCodes)
-addResponseSchema410 =
-  addResponseSchema @"410"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response410 a : responseCodes)
+addResponseBody410 =
+  addResponseBody @"410"
 
 {- | Appends an HTTP 410 (Gone) document response to the set of possible
 responses.
@@ -2118,17 +2218,17 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument410
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument410 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response410 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response410 Document : responseCodes)
 addResponseDocument410 =
   addResponseDocument @"410"
 
@@ -2138,20 +2238,24 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema411 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody411 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema411 ::
+addResponseBody411 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response411 a : responseCodes)
-addResponseSchema411 =
-  addResponseSchema @"411"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response411 a : responseCodes)
+addResponseBody411 =
+  addResponseBody @"411"
 
 {- | Appends an HTTP 411 (Length Required) document response to the set of
 possible responses.
@@ -2159,17 +2263,17 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument411
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument411 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response411 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response411 Document : responseCodes)
 addResponseDocument411 =
   addResponseDocument @"411"
 
@@ -2179,20 +2283,24 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema412 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody412 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema412 ::
+addResponseBody412 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response412 a : responseCodes)
-addResponseSchema412 =
-  addResponseSchema @"412"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response412 a : responseCodes)
+addResponseBody412 =
+  addResponseBody @"412"
 
 {- | Appends an HTTP 412 (Precondition Failed) document response to the set of
 possible responses.
@@ -2200,17 +2308,17 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument412
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument412 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response412 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response412 Document : responseCodes)
 addResponseDocument412 =
   addResponseDocument @"412"
 
@@ -2220,20 +2328,24 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema413 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody413 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema413 ::
+addResponseBody413 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response413 a : responseCodes)
-addResponseSchema413 =
-  addResponseSchema @"413"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response413 a : responseCodes)
+addResponseBody413 =
+  addResponseBody @"413"
 
 {- | Appends an HTTP 413 (Payload Too Large) document response to the set of
 possible responses.
@@ -2241,17 +2353,17 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument413
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument413 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response413 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response413 Document : responseCodes)
 addResponseDocument413 =
   addResponseDocument @"413"
 
@@ -2261,20 +2373,24 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema414 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody414 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema414 ::
+addResponseBody414 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response414 a : responseCodes)
-addResponseSchema414 =
-  addResponseSchema @"414"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response414 a : responseCodes)
+addResponseBody414 =
+  addResponseBody @"414"
 
 {- | Appends an HTTP 414 (URI Too Long) document response to the set of
 possible responses.
@@ -2282,17 +2398,17 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument414
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument414 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response414 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response414 Document : responseCodes)
 addResponseDocument414 =
   addResponseDocument @"414"
 
@@ -2302,20 +2418,24 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema415 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody415 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema415 ::
+addResponseBody415 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response415 a : responseCodes)
-addResponseSchema415 =
-  addResponseSchema @"415"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response415 a : responseCodes)
+addResponseBody415 =
+  addResponseBody @"415"
 
 {- | Appends an HTTP 415 (Unsupported Media Type) document response to the set
 of possible responses.
@@ -2323,17 +2443,17 @@ of possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument415
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument415 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response415 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response415 Document : responseCodes)
 addResponseDocument415 =
   addResponseDocument @"415"
 
@@ -2343,20 +2463,24 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema416 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody416 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema416 ::
+addResponseBody416 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response416 a : responseCodes)
-addResponseSchema416 =
-  addResponseSchema @"416"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response416 a : responseCodes)
+addResponseBody416 =
+  addResponseBody @"416"
 
 {- | Appends an HTTP 416 (Range Not Satisfiable) document response to the set
 of possible responses.
@@ -2364,17 +2488,17 @@ of possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument416
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument416 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response416 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response416 Document : responseCodes)
 addResponseDocument416 =
   addResponseDocument @"416"
 
@@ -2384,20 +2508,24 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema417 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody417 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema417 ::
+addResponseBody417 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response417 a : responseCodes)
-addResponseSchema417 =
-  addResponseSchema @"417"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response417 a : responseCodes)
+addResponseBody417 =
+  addResponseBody @"417"
 
 {- | Appends an HTTP 417 (Expectation Failed) document response to the set of
 possible responses.
@@ -2405,17 +2533,17 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument417
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument417 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response417 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response417 Document : responseCodes)
 addResponseDocument417 =
   addResponseDocument @"417"
 
@@ -2425,20 +2553,24 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema418 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody418 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema418 ::
+addResponseBody418 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response418 a : responseCodes)
-addResponseSchema418 =
-  addResponseSchema @"418"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response418 a : responseCodes)
+addResponseBody418 =
+  addResponseBody @"418"
 
 {- | Appends an HTTP 418 (I'm a Teapot) document response to the set of
 possible responses.
@@ -2446,17 +2578,17 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument418
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument418 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response418 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response418 Document : responseCodes)
 addResponseDocument418 =
   addResponseDocument @"418"
 
@@ -2466,20 +2598,24 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema422 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody422 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema422 ::
+addResponseBody422 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response422 a : responseCodes)
-addResponseSchema422 =
-  addResponseSchema @"422"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response422 a : responseCodes)
+addResponseBody422 =
+  addResponseBody @"422"
 
 {- | Appends an HTTP 422 (Unprocessable Entity) document response to the set of
 possible responses.
@@ -2487,17 +2623,17 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument422
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument422 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response422 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response422 Document : responseCodes)
 addResponseDocument422 =
   addResponseDocument @"422"
 
@@ -2507,20 +2643,24 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema428 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody428 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema428 ::
+addResponseBody428 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response428 a : responseCodes)
-addResponseSchema428 =
-  addResponseSchema @"428"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response428 a : responseCodes)
+addResponseBody428 =
+  addResponseBody @"428"
 
 {- | Appends an HTTP 428 (Precondition Required) document response to the set
 of possible responses.
@@ -2528,17 +2668,17 @@ of possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument428
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument428 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response428 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response428 Document : responseCodes)
 addResponseDocument428 =
   addResponseDocument @"428"
 
@@ -2548,20 +2688,24 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema429 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody429 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema429 ::
+addResponseBody429 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response429 a : responseCodes)
-addResponseSchema429 =
-  addResponseSchema @"429"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response429 a : responseCodes)
+addResponseBody429 =
+  addResponseBody @"429"
 
 {- | Appends an HTTP 429 (Too Many Requests) document response to the set of
 possible responses.
@@ -2569,17 +2713,17 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument429
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument429 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response429 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response429 Document : responseCodes)
 addResponseDocument429 =
   addResponseDocument @"429"
 
@@ -2589,20 +2733,24 @@ the set of possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema431 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody431 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema431 ::
+addResponseBody431 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response431 a : responseCodes)
-addResponseSchema431 =
-  addResponseSchema @"431"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response431 a : responseCodes)
+addResponseBody431 =
+  addResponseBody @"431"
 
 {- | Appends an HTTP 431 (Request Header Fields Too Large) document response to
 the set of possible responses.
@@ -2610,17 +2758,17 @@ the set of possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument431
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument431 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response431 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response431 Document : responseCodes)
 addResponseDocument431 =
   addResponseDocument @"431"
 
@@ -2630,20 +2778,24 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema500 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody500 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema500 ::
+addResponseBody500 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response500 a : responseCodes)
-addResponseSchema500 =
-  addResponseSchema @"500"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response500 a : responseCodes)
+addResponseBody500 =
+  addResponseBody @"500"
 
 {- | Appends an HTTP 500 (Internal Server Error) document response to the set
 of possible responses.
@@ -2651,17 +2803,17 @@ of possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument500
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument500 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response500 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response500 Document : responseCodes)
 addResponseDocument500 =
   addResponseDocument @"500"
 
@@ -2671,20 +2823,24 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema501 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody501 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema501 ::
+addResponseBody501 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response501 a : responseCodes)
-addResponseSchema501 =
-  addResponseSchema @"501"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response501 a : responseCodes)
+addResponseBody501 =
+  addResponseBody @"501"
 
 {- | Appends an HTTP 501 (Not Implemented) document response to the set of
 possible responses.
@@ -2692,17 +2848,17 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument501
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument501 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response501 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response501 Document : responseCodes)
 addResponseDocument501 =
   addResponseDocument @"501"
 
@@ -2712,20 +2868,24 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema502 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody502 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema502 ::
+addResponseBody502 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response502 a : responseCodes)
-addResponseSchema502 =
-  addResponseSchema @"502"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response502 a : responseCodes)
+addResponseBody502 =
+  addResponseBody @"502"
 
 {- | Appends an HTTP 502 (Bad Gateway) document response to the set of possible
 responses.
@@ -2733,17 +2893,17 @@ responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument502
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument502 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response502 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response502 Document : responseCodes)
 addResponseDocument502 =
   addResponseDocument @"502"
 
@@ -2753,20 +2913,24 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema503 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody503 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema503 ::
+addResponseBody503 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response503 a : responseCodes)
-addResponseSchema503 =
-  addResponseSchema @"503"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response503 a : responseCodes)
+addResponseBody503 =
+  addResponseBody @"503"
 
 {- | Appends an HTTP 503 (Service Unavailable) document response to the set of
 possible responses.
@@ -2774,17 +2938,17 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument503
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument503 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response503 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response503 Document : responseCodes)
 addResponseDocument503 =
   addResponseDocument @"503"
 
@@ -2794,20 +2958,24 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema504 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody504 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema504 ::
+addResponseBody504 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response504 a : responseCodes)
-addResponseSchema504 =
-  addResponseSchema @"504"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response504 a : responseCodes)
+addResponseBody504 =
+  addResponseBody @"504"
 
 {- | Appends an HTTP 504 (Gateway Timeout) document response to the set of
 possible responses.
@@ -2815,17 +2983,17 @@ possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument504
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument504 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response504 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response504 Document : responseCodes)
 addResponseDocument504 =
   addResponseDocument @"504"
 
@@ -2835,20 +3003,24 @@ of possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema505 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody505 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema505 ::
+addResponseBody505 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response505 a : responseCodes)
-addResponseSchema505 =
-  addResponseSchema @"505"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response505 a : responseCodes)
+addResponseBody505 =
+  addResponseBody @"505"
 
 {- | Appends an HTTP 505 (HTTP Version Not Supported) document response to the
 set of possible responses.
@@ -2856,17 +3028,17 @@ set of possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument505
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument505 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response505 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response505 Document : responseCodes)
 addResponseDocument505 =
   addResponseDocument @"505"
 
@@ -2876,20 +3048,24 @@ the set of possible responses.
 /Example usage/:
 
 @
-responseSchemas
-  . addResponseSchema511 myTypeSchema
-  $ noResponseSchemas
+responseBodies
+  . addResponseBody511 myTypeEncoderFn
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
-addResponseSchema511 ::
+addResponseBody511 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response511 a : responseCodes)
-addResponseSchema511 =
-  addResponseSchema @"511"
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  -- | The encoder function, which takes a type @a@ and encodes it to a
+  -- 'LBS.ByteString'.
+  (a -> LBS.ByteString) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response511 a : responseCodes)
+addResponseBody511 =
+  addResponseBody @"511"
 
 {- | Appends an HTTP 511 (Network Authentication Required) document response to
 the set of possible responses.
@@ -2897,17 +3073,17 @@ the set of possible responses.
 /Example usage/:
 
 @
-responseSchemas
+responseBodies
   . addResponseDocument511
-  $ noResponseSchemas
+  $ noResponseBodies
 @
 
 @since 0.1.0
 -}
 addResponseDocument511 ::
   forall responseCodes.
-  ResponseSchemasBuilder responseCodes ->
-  ResponseSchemasBuilder (Response511 Document : responseCodes)
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response511 Document : responseCodes)
 addResponseDocument511 =
   addResponseDocument @"511"
 
@@ -3058,14 +3234,14 @@ response for a given status code in a monadic context.
 The key idea is that @returnType@ represents the actual response body type
 (e.g., a JSON-serializable record or a custom document), while the underlying
 constraint ensures it corresponds correctly to a status @code@ within the
-'Shrubbery' tagged union of responses (parameterized by @responseCodes@). It
-also requires @m@ to have an instance of an 'Applicative'.
+'S.TaggedUnion' of responses (parameterized by @responseCodes@). It also
+requires @m@ to have an instance of an 'Applicative'.
 
 This type alias is primarily used to define more specific response functions
 such as 'Return200' or 'Return404', which fix the @code@ to particular HTTP
 status codes. Those synonyms, in turn, give you a convenient way to ensure that
 any function returning them lines up exactly with the response codes in the
-'ResponseSchemasBuilder'.
+'ResponseBodiesBuilder'.
 
 @since 0.1.0
 -}

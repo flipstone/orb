@@ -4,6 +4,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
@@ -14,20 +15,21 @@ module Orb.Handler.Handler
   , runHandler
   , HasHandler (..)
   , NoRequestBody (..)
-  , RequestBodySchema (..)
+  , RequestBody (..)
   , useRouteAsPermissionAction
   )
 where
 
+import Data.ByteString.Lazy qualified as LBS
 import Data.Kind qualified as Kind
 import Data.Maybe (maybeToList)
 import Data.Text qualified as T
-import Fleece.Aeson qualified as FA
-import Fleece.Core qualified as FC
 import Network.Wai qualified as Wai
+import Network.Wai.Parse qualified as Wai
 import Shrubbery qualified as S
 import UnliftIO qualified
 
+import Orb.Handler.Form (Form, getForm)
 import Orb.Handler.PermissionAction qualified as PA
 import Orb.Handler.PermissionError qualified as PE
 import Orb.HasRequest qualified as HasRequest
@@ -36,8 +38,8 @@ import Orb.Response qualified as Response
 
 data Handler route = Handler
   { handlerId :: String
-  , requestBodySchema :: RequestBodySchema (HandlerRequestBody route) (HandlerResponses route)
-  , handlerResponseSchemas :: Response.ResponseSchemas (HandlerResponses route)
+  , requestBody :: RequestBody (HandlerRequestBody route) (HandlerResponses route)
+  , handlerResponseBodies :: Response.ResponseBodies (HandlerResponses route)
   , mkPermissionAction ::
       route ->
       HandlerRequestBody route ->
@@ -81,13 +83,17 @@ type HandlerPermissionResult route =
 data NoRequestBody
   = NoRequestBody
 
-data RequestBodySchema body tags where
-  RequestBodySchema ::
-    Response.Has422Response tags =>
-    (forall schema. FC.Fleece schema => schema body) ->
-    RequestBodySchema body tags
-  NoRequestBodySchema ::
-    RequestBodySchema NoRequestBody tags
+data RequestBody body tags where
+  RequestBody ::
+    Response.HasResponseCodeWithType tags "422" err =>
+    (LBS.ByteString -> Either err body) ->
+    RequestBody body tags
+  RequestFormData ::
+    (Response.Has400Response tags, Response.HasResponseCodeWithType tags "422" err) =>
+    (Form -> Either err body) ->
+    RequestBody body tags
+  EmptyRequestBody ::
+    RequestBody NoRequestBody tags
 
 runHandler ::
   ( HasHandler route
@@ -100,16 +106,21 @@ runHandler ::
   route ->
   m Wai.ResponseReceived
 runHandler handler route =
-  case requestBodySchema handler of
-    NoRequestBodySchema ->
-      noRequestBodyHandler
-        (handlerResponseSchemas handler)
-        (runPermissionAction handler route NoRequestBody)
-    RequestBodySchema bodySchema ->
+  case requestBody handler of
+    RequestBody bodyDecoder ->
       requestBodyHandler
-        bodySchema
-        (handlerResponseSchemas handler)
+        bodyDecoder
+        (handlerResponseBodies handler)
         (runPermissionAction handler route)
+    RequestFormData formDecoder ->
+      requestFormDataHandler
+        formDecoder
+        (handlerResponseBodies handler)
+        (runPermissionAction handler route)
+    EmptyRequestBody ->
+      emptyRequestBodyHandler
+        (handlerResponseBodies handler)
+        (runPermissionAction handler route NoRequestBody)
 
 runPermissionAction ::
   (Monad m, HasHandler route, HandlerMonad route ~ m) =>
@@ -128,15 +139,15 @@ runPermissionAction handler route body = do
     Left err -> PE.returnPermissionError err
     Right permissionResult -> handleRequest handler route body permissionResult
 
-noRequestBodyHandler ::
+emptyRequestBodyHandler ::
   ( HasRespond.HasRespond m
   , Response.Has500Response tags
   , UnliftIO.MonadUnliftIO m
   ) =>
-  Response.ResponseSchemas tags ->
+  Response.ResponseBodies tags ->
   m (S.TaggedUnion tags) ->
   m Wai.ResponseReceived
-noRequestBodyHandler schemas action = do
+emptyRequestBodyHandler bodies action = do
   errOrResponse <- UnliftIO.tryAny action
   response <-
     case errOrResponse of
@@ -147,7 +158,7 @@ noRequestBodyHandler schemas action = do
         Response.return500 Response.InternalServerError
 
   let
-    responseData = encodeResponse schemas response
+    responseData = encodeResponse bodies response
     contentTypeHeader =
       maybeToList $
         ("Content-Type",)
@@ -159,27 +170,60 @@ noRequestBodyHandler schemas action = do
       (contentTypeHeader <> Response.responseDataExtraHeaders responseData)
       (Response.responseDataBytes responseData)
 
-requestBodyHandler ::
-  ( Response.Has422Response tags
+requestFormDataHandler ::
+  ( Response.Has400Response tags
+  , Response.HasResponseCodeWithType tags "422" err
   , Response.Has500Response tags
   , HasRequest.HasRequest m
   , HasRespond.HasRespond m
   , UnliftIO.MonadUnliftIO m
   ) =>
-  FA.Decoder request ->
-  Response.ResponseSchemas tags ->
+  (Form -> Either err request) ->
+  Response.ResponseBodies tags ->
   (request -> m (S.TaggedUnion tags)) ->
   m Wai.ResponseReceived
-requestBodyHandler requestDecoder schemas action =
-  noRequestBodyHandler schemas $ do
+requestFormDataHandler requestDecoder bodies action =
+  emptyRequestBodyHandler bodies $ do
+    req <- HasRequest.request
+    errOrFormFields <-
+      UnliftIO.liftIO
+        . UnliftIO.try
+        $ Wai.parseRequestBodyEx
+          Wai.defaultParseRequestBodyOptions
+          Wai.lbsBackEnd
+          req
+
+    case errOrFormFields of
+      Left (err :: Wai.RequestParseException) ->
+        Response.return400 . Response.BadRequestMessage . T.pack $ show err
+      Right formFields ->
+        case getForm formFields of
+          Left err ->
+            Response.return400 $ Response.BadRequestMessage err
+          Right form ->
+            case requestDecoder form of
+              Left err -> Response.return422 err
+              Right request -> action request
+
+requestBodyHandler ::
+  ( Response.HasResponseCodeWithType tags "422" err
+  , Response.Has500Response tags
+  , HasRequest.HasRequest m
+  , HasRespond.HasRespond m
+  , UnliftIO.MonadUnliftIO m
+  ) =>
+  (LBS.ByteString -> Either err request) ->
+  Response.ResponseBodies tags ->
+  (request -> m (S.TaggedUnion tags)) ->
+  m Wai.ResponseReceived
+requestBodyHandler requestDecoder bodies action =
+  emptyRequestBodyHandler bodies $ do
     req <- HasRequest.request
     body <- UnliftIO.liftIO $ Wai.consumeRequestBodyStrict req
-    case FA.decode requestDecoder body of
-      Left err ->
-        Response.return422 . Response.UnprocessableContentMessage . T.pack $ err
-      Right request ->
-        action request
+    case requestDecoder body of
+      Left err -> Response.return422 err
+      Right request -> action request
 
-encodeResponse :: Response.ResponseSchemas tags -> S.TaggedUnion tags -> Response.ResponseData
+encodeResponse :: Response.ResponseBodies tags -> S.TaggedUnion tags -> Response.ResponseData
 encodeResponse =
   S.dissectTaggedUnion . Response.encodeResponseBranches
