@@ -52,6 +52,7 @@ library
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , case-insensitive
     , containers
     , http-types
     , json-fleece-aeson
@@ -79,6 +80,7 @@ test-suite orb-test
   build-depends:
       base >=4.7 && <5
     , bytestring
+    , case-insensitive
     , containers
     , http-types
     , json-fleece-aeson
