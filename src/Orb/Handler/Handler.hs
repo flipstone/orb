@@ -186,12 +186,12 @@ requestFormDataHandler requestDecoder bodies action =
   emptyRequestBodyHandler bodies $ do
     req <- HasRequest.request
     errOrFormFields <-
-      UnliftIO.liftIO $
-        UnliftIO.try $
-          Wai.parseRequestBodyEx
-            Wai.defaultParseRequestBodyOptions
-            Wai.lbsBackEnd
-            req
+      UnliftIO.liftIO
+        . UnliftIO.try
+        $ Wai.parseRequestBodyEx
+          Wai.defaultParseRequestBodyOptions
+          Wai.lbsBackEnd
+          req
 
     case errOrFormFields of
       Left (err :: Wai.RequestParseException) ->
@@ -199,7 +199,7 @@ requestFormDataHandler requestDecoder bodies action =
       Right formFields ->
         case getForm formFields of
           Left err ->
-            Response.return400 . Response.BadRequestMessage $ T.pack err
+            Response.return400 $ Response.BadRequestMessage err
           Right form ->
             case requestDecoder form of
               Left err -> Response.return422 err

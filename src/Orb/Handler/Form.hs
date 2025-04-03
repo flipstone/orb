@@ -16,14 +16,16 @@ import Network.Wai.Parse qualified as Wai
 
 type Form = Map.Map T.Text FormField
 
-getForm :: ([Wai.Param], [Wai.File LBS.ByteString]) -> Either String Form
+getForm :: ([Wai.Param], [Wai.File LBS.ByteString]) -> Either T.Text Form
 getForm (params, files) =
   mergeA
     (traverseMissing $ \_lk lv -> Right lv)
     (traverseMissing $ \_rk rv -> Right rv)
     ( zipWithAMatched $ \k _lv _rv ->
         Left $
-          "Form field with name " <> T.unpack k <> " appears more than once."
+          T.pack "Form field with name "
+            <> k
+            <> T.pack " appears more than once."
     )
     (ParamField <$> foldl' insertParamField Map.empty params)
     (FileField <$> foldl' insertFileField Map.empty files)
