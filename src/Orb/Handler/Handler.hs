@@ -23,10 +23,13 @@ where
 import Data.ByteString.Lazy qualified as LBS
 import Data.Kind qualified as Kind
 import Data.Maybe (maybeToList)
+import Data.Text qualified as T
 import Network.Wai qualified as Wai
+import Network.Wai.Parse qualified as Wai
 import Shrubbery qualified as S
 import UnliftIO qualified
 
+import Orb.Handler.Form (Form, getForm)
 import Orb.Handler.PermissionAction qualified as PA
 import Orb.Handler.PermissionError qualified as PE
 import Orb.HasRequest qualified as HasRequest
@@ -85,6 +88,10 @@ data RequestBody body tags where
     Response.HasResponseCodeWithType tags "422" err =>
     (LBS.ByteString -> Either err body) ->
     RequestBody body tags
+  RequestFormData ::
+    (Response.Has400Response tags, Response.HasResponseCodeWithType tags "422" err) =>
+    (Form -> Either err body) ->
+    RequestBody body tags
   EmptyRequestBody ::
     RequestBody NoRequestBody tags
 
@@ -103,6 +110,11 @@ runHandler handler route =
     RequestBody bodyDecoder ->
       requestBodyHandler
         bodyDecoder
+        (handlerResponseBodies handler)
+        (runPermissionAction handler route)
+    RequestFormData formDecoder ->
+      requestFormDataHandler
+        formDecoder
         (handlerResponseBodies handler)
         (runPermissionAction handler route)
     EmptyRequestBody ->
@@ -157,6 +169,41 @@ emptyRequestBodyHandler bodies action = do
       (Response.responseDataStatus responseData)
       (contentTypeHeader <> Response.responseDataExtraHeaders responseData)
       (Response.responseDataBytes responseData)
+
+requestFormDataHandler ::
+  ( Response.Has400Response tags
+  , Response.HasResponseCodeWithType tags "422" err
+  , Response.Has500Response tags
+  , HasRequest.HasRequest m
+  , HasRespond.HasRespond m
+  , UnliftIO.MonadUnliftIO m
+  ) =>
+  (Form -> Either err request) ->
+  Response.ResponseBodies tags ->
+  (request -> m (S.TaggedUnion tags)) ->
+  m Wai.ResponseReceived
+requestFormDataHandler requestDecoder bodies action =
+  emptyRequestBodyHandler bodies $ do
+    req <- HasRequest.request
+    errOrFormFields <-
+      UnliftIO.liftIO
+        . UnliftIO.try
+        $ Wai.parseRequestBodyEx
+          Wai.defaultParseRequestBodyOptions
+          Wai.lbsBackEnd
+          req
+
+    case errOrFormFields of
+      Left (err :: Wai.RequestParseException) ->
+        Response.return400 . Response.BadRequestMessage . T.pack $ show err
+      Right formFields ->
+        case getForm formFields of
+          Left err ->
+            Response.return400 $ Response.BadRequestMessage err
+          Right form ->
+            case requestDecoder form of
+              Left err -> Response.return422 err
+              Right request -> action request
 
 requestBodyHandler ::
   ( Response.HasResponseCodeWithType tags "422" err
