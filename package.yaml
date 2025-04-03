@@ -32,6 +32,7 @@ flags:
 dependencies:
   - base >= 4.7 && < 5
   - bytestring
+  - case-insensitive
   - containers
   - http-types
   - json-fleece-aeson
@@ -40,6 +41,7 @@ dependencies:
   - text
   - unliftio
   - wai
+  - wai-extra
 
 library:
   source-dirs: src
