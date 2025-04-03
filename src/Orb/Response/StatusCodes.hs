@@ -3081,768 +3081,1112 @@ type ReturnType returnType index m responseCodes code =
 
 {- | A type synonym representing a monadic action returning an HTTP 100
 (Continue) no-content response.
+
+@since 0.1.0
 -}
 type Return100 index m responseCodes =
   ReturnType NoContent index m responseCodes "100"
 
 {- | A type synonym representing a monadic action returning an HTTP 101
 (Switching Protocols) no-content response.
+
+@since 0.1.0
 -}
 type Return101 index m responseCodes =
   ReturnType NoContent index m responseCodes "101"
 
 {- | A type synonym representing a monadic action returning an HTTP 200 (OK)
 typed response.
+
+@since 0.1.0
 -}
 type Return200 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "200"
 
 {- | A type synonym representing a monadic action returning an HTTP 201
 (Created) typed response.
+
+@since 0.1.0
 -}
 type Return201 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "201"
 
 {- | A type synonym representing a monadic action returning an HTTP 202
 (Accepted) typed response.
+
+@since 0.1.0
 -}
 type Return202 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "202"
 
 {- | A type synonym representing a monadic action returning an HTTP 203
 (Non-Authoritative Information) typed response.
+
+@since 0.1.0
 -}
 type Return203 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "203"
 
 {- | A type synonym representing a monadic action returning an HTTP 204 (No
 Content) no-content response.
+
+@since 0.1.0
 -}
 type Return204 index m responseCodes =
   ReturnType NoContent index m responseCodes "204"
 
 {- | A type synonym representing a monadic action returning an HTTP 205 (Reset
 Content) no-content response.
+
+@since 0.1.0
 -}
 type Return205 index m responseCodes =
   ReturnType NoContent index m responseCodes "205"
 
 {- | A type synonym representing a monadic action returning an HTTP 206
 (Partial Content) typed response.
+
+@since 0.1.0
 -}
 type Return206 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "206"
 
 {- | A type synonym representing a monadic action returning an HTTP 300
 (Multiple Choices) typed response.
+
+@since 0.1.0
 -}
 type Return300 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "300"
 
 {- | A type synonym representing a monadic action returning an HTTP 301 (Moved
 Permanently) typed response.
+
+@since 0.1.0
 -}
 type Return301 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "301"
 
 {- | A type synonym representing a monadic action returning an HTTP 302 (Found)
 typed response.
+
+@since 0.1.0
 -}
 type Return302 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "302"
 
 {- | A type synonym representing a monadic action returning an HTTP 303 (See
 Other) typed response.
+
+@since 0.1.0
 -}
 type Return303 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "303"
 
 {- | A type synonym representing a monadic action returning an HTTP 304 (Not
 Modified) no-content response.
+
+@since 0.1.0
 -}
 type Return304 index m responseCodes =
   ReturnType NoContent index m responseCodes "304"
 
 {- | A type synonym representing a monadic action returning an HTTP 305 (Use
 Proxy) typed response.
+
+@since 0.1.0
 -}
 type Return305 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "305"
 
 {- | A type synonym representing a monadic action returning an HTTP 307
 (Temporary Redirect) typed response.
+
+@since 0.1.0
 -}
 type Return307 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "307"
 
 {- | A type synonym representing a monadic action returning an HTTP 308
 (Permanent Redirect) typed response.
+
+@since 0.1.0
 -}
 type Return308 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "308"
 
 {- | A type synonym representing a monadic action returning an HTTP 400 (Bad
 Request) typed response.
+
+@since 0.1.0
 -}
 type Return400 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "400"
 
 {- | A type synonym representing a monadic action returning an HTTP 401
 (Unauthorized) typed response.
+
+@since 0.1.0
 -}
 type Return401 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "401"
 
 {- | A type synonym representing a monadic action returning an HTTP 402
 (Payment Required) typed response.
+
+@since 0.1.0
 -}
 type Return402 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "402"
 
 {- | A type synonym representing a monadic action returning an HTTP 403
 (Forbidden) typed response.
+
+@since 0.1.0
 -}
 type Return403 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "403"
 
 {- | A type synonym representing a monadic action returning an HTTP 404 (Not
 Found) typed response.
+
+@since 0.1.0
 -}
 type Return404 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "404"
 
 {- | A type synonym representing a monadic action returning an HTTP 405 (Method
 Not Allowed) typed response.
+
+@since 0.1.0
 -}
 type Return405 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "405"
 
 {- | A type synonym representing a monadic action returning an HTTP 406 (Not
 Acceptable) typed response.
+
+@since 0.1.0
 -}
 type Return406 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "406"
 
 {- | A type synonym representing a monadic action returning an HTTP 407 (Proxy
 Authentication Required) typed response.
+
+@since 0.1.0
 -}
 type Return407 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "407"
 
 {- | A type synonym representing a monadic action returning an HTTP 408
 (Request Timeout) typed response.
+
+@since 0.1.0
 -}
 type Return408 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "408"
 
 {- | A type synonym representing a monadic action returning an HTTP 409
 (Conflict) typed response.
+
+@since 0.1.0
 -}
 type Return409 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "409"
 
 {- | A type synonym representing a monadic action returning an HTTP 410 (Gone)
 typed response.
+
+@since 0.1.0
 -}
 type Return410 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "410"
 
 {- | A type synonym representing a monadic action returning an HTTP 411 (Length
 Required) typed response.
+
+@since 0.1.0
 -}
 type Return411 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "411"
 
 {- | A type synonym representing a monadic action returning an HTTP 412
 (Precondition Failed) typed response.
+
+@since 0.1.0
 -}
 type Return412 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "412"
 
 {- | A type synonym representing a monadic action returning an HTTP 413
 (Payload Too Large) typed response.
+
+@since 0.1.0
 -}
 type Return413 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "413"
 
 {- | A type synonym representing a monadic action returning an HTTP 414 (URI
 Too Long) typed response.
+
+@since 0.1.0
 -}
 type Return414 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "414"
 
 {- | A type synonym representing a monadic action returning an HTTP 415
 (Unsupported Media Type) typed response.
+
+@since 0.1.0
 -}
 type Return415 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "415"
 
 {- | A type synonym representing a monadic action returning an HTTP 416 (Range
 Not Satisfiable) typed response.
+
+@since 0.1.0
 -}
 type Return416 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "416"
 
 {- | A type synonym representing a monadic action returning an HTTP 417
 (Expectation Failed) typed response.
+
+@since 0.1.0
 -}
 type Return417 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "417"
 
 {- | A type synonym representing a monadic action returning an HTTP 418 (I'm a
 Teapot) typed response.
+
+@since 0.1.0
 -}
 type Return418 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "418"
 
 {- | A type synonym representing a monadic action returning an HTTP 422
 (Unprocessable Entity) typed response.
+
+@since 0.1.0
 -}
 type Return422 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "422"
 
 {- | A type synonym representing a monadic action returning an HTTP 428
 (Precondition Required) typed response.
+
+@since 0.1.0
 -}
 type Return428 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "428"
 
 {- | A type synonym representing a monadic action returning an HTTP 429 (Too
 Many Requests) typed response.
+
+@since 0.1.0
 -}
 type Return429 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "429"
 
 {- | A type synonym representing a monadic action returning an HTTP 431
 (Request Header Fields Too Large) typed response.
+
+@since 0.1.0
 -}
 type Return431 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "431"
 
 {- | A type synonym representing a monadic action returning an HTTP 500
 (Internal Server Error) typed response.
+
+@since 0.1.0
 -}
 type Return500 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "500"
 
 {- | A type synonym representing a monadic action returning an HTTP 501 (Not
 Implemented) typed response.
+
+@since 0.1.0
 -}
 type Return501 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "501"
 
 {- | A type synonym representing a monadic action returning an HTTP 502 (Bad
 Gateway) typed response.
+
+@since 0.1.0
 -}
 type Return502 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "502"
 
 {- | A type synonym representing a monadic action returning an HTTP 503
 (Service Unavailable) typed response.
+
+@since 0.1.0
 -}
 type Return503 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "503"
 
 {- | A type synonym representing a monadic action returning an HTTP 504
 (Gateway Timeout) typed response.
+
+@since 0.1.0
 -}
 type Return504 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "504"
 
 {- | A type synonym representing a monadic action returning an HTTP 505 (HTTP
 Version Not Supported) typed response.
+
+@since 0.1.0
 -}
 type Return505 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "505"
 
 {- | A type synonym representing a monadic action returning an HTTP 511
 (Network Authentication Required) typed response.
+
+@since 0.1.0
 -}
 type Return511 returnType index m responseCodes =
   ReturnType returnType index m responseCodes "511"
 
--- | Returns an HTTP 100 (Continue) no-content response.
+{- | Returns an HTTP 100 (Continue) no-content response.
+
+@since 0.1.0
+-}
 return100 :: Return100 index m responseCodes
 return100 = return100WithHeaders []
 
 {- | Returns an HTTP 100 (Continue) no-content response with additional
 headers.
+
+@since 0.1.0
 -}
 return100WithHeaders :: HTTP.ResponseHeaders -> Return100 index m responseCodes
 return100WithHeaders headers =
   pure . S.unifyTaggedUnion @"100" . (,headers)
 
--- | Returns an HTTP 101 (Switching Protocols) no-content response.
+{- | Returns an HTTP 101 (Switching Protocols) no-content response.
+
+@since 0.1.0
+-}
 return101 :: Return101 index m responseCodes
 return101 = return101WithHeaders []
 
 {- | Returns an HTTP 101 (Switching Protocols) no-content response with
 additional headers.
+
+@since 0.1.0
 -}
 return101WithHeaders :: HTTP.ResponseHeaders -> Return101 index m responseCodes
 return101WithHeaders headers =
   pure . S.unifyTaggedUnion @"101" . (,headers)
 
--- | Returns an HTTP 200 (OK) typed response.
+{- | Returns an HTTP 200 (OK) typed response.
+
+@since 0.1.0
+-}
 return200 :: Return200 returnType index m responseCodes
 return200 = return200WithHeaders []
 
--- | Returns an HTTP 200 (OK) typed response with additional headers.
+{- | Returns an HTTP 200 (OK) typed response with additional headers.
+
+@since 0.1.0
+-}
 return200WithHeaders :: HTTP.ResponseHeaders -> Return200 returnType index m responseCodes
 return200WithHeaders headers =
   pure . S.unifyTaggedUnion @"200" . (,headers)
 
--- | Returns an HTTP 201 (Created) typed response.
+{- | Returns an HTTP 201 (Created) typed response.
+
+@since 0.1.0
+-}
 return201 :: Return201 returnType index m responseCodes
 return201 = return201WithHeaders []
 
--- | Returns an HTTP 201 (Created) typed response with additional headers.
+{- | Returns an HTTP 201 (Created) typed response with additional headers.
+
+@since 0.1.0
+-}
 return201WithHeaders :: HTTP.ResponseHeaders -> Return201 returnType index m responseCodes
 return201WithHeaders headers =
   pure . S.unifyTaggedUnion @"201" . (,headers)
 
--- | Returns an HTTP 202 (Accepted) typed response.
+{- | Returns an HTTP 202 (Accepted) typed response.
+
+@since 0.1.0
+-}
 return202 :: Return202 returnType index m responseCodes
 return202 = return202WithHeaders []
 
--- | Returns an HTTP 202 (Accepted) typed response with additional headers.
+{- | Returns an HTTP 202 (Accepted) typed response with additional headers.
+
+@since 0.1.0
+-}
 return202WithHeaders :: HTTP.ResponseHeaders -> Return202 returnType index m responseCodes
 return202WithHeaders headers =
   pure . S.unifyTaggedUnion @"202" . (,headers)
 
--- | Returns an HTTP 203 (Non-Authoritative Information) typed response.
+{- | Returns an HTTP 203 (Non-Authoritative Information) typed response.
+
+@since 0.1.0
+-}
 return203 :: Return203 returnType index m responseCodes
 return203 = return203WithHeaders []
 
 {- | Returns an HTTP 203 (Non-Authoritative Information) typed response with
 additional headers.
+
+@since 0.1.0
 -}
 return203WithHeaders :: HTTP.ResponseHeaders -> Return203 returnType index m responseCodes
 return203WithHeaders headers =
   pure . S.unifyTaggedUnion @"203" . (,headers)
 
--- | Returns an HTTP 204 (No Content) no-content response.
+{- | Returns an HTTP 204 (No Content) no-content response.
+
+@since 0.1.0
+-}
 return204 :: Return204 index m responseCodes
 return204 = return204WithHeaders []
 
 {- | Returns an HTTP 204 (No Content) no-content response with additional
 headers.
+
+@since 0.1.0
 -}
 return204WithHeaders :: HTTP.ResponseHeaders -> Return204 index m responseCodes
 return204WithHeaders headers =
   pure . S.unifyTaggedUnion @"204" . (,headers)
 
--- | Returns an HTTP 205 (Reset Content) no-content response.
+{- | Returns an HTTP 205 (Reset Content) no-content response.
+
+@since 0.1.0
+-}
 return205 :: Return205 index m responseCodes
 return205 = return205WithHeaders []
 
 {- | Returns an HTTP 205 (Reset Content) no-content response with additional
 headers.
+
+@since 0.1.0
 -}
 return205WithHeaders :: HTTP.ResponseHeaders -> Return205 index m responseCodes
 return205WithHeaders headers =
   pure . S.unifyTaggedUnion @"205" . (,headers)
 
--- | Returns an HTTP 206 (Partial Content) typed response.
+{- | Returns an HTTP 206 (Partial Content) typed response.
+
+@since 0.1.0
+-}
 return206 :: Return206 returnType index m responseCodes
 return206 = return206WithHeaders []
 
 {- | Returns an HTTP 206 (Partial Content) typed response with additional
 headers.
+
+@since 0.1.0
 -}
 return206WithHeaders :: HTTP.ResponseHeaders -> Return206 returnType index m responseCodes
 return206WithHeaders headers =
   pure . S.unifyTaggedUnion @"206" . (,headers)
 
--- | Returns an HTTP 300 (Multiple Choices) typed response.
+{- | Returns an HTTP 300 (Multiple Choices) typed response.
+
+@since 0.1.0
+-}
 return300 :: Return300 returnType index m responseCodes
 return300 = return300WithHeaders []
 
 {- | Returns an HTTP 300 (Multiple Choices) typed response with additional
 headers.
+
+@since 0.1.0
 -}
 return300WithHeaders :: HTTP.ResponseHeaders -> Return300 returnType index m responseCodes
 return300WithHeaders headers =
   pure . S.unifyTaggedUnion @"300" . (,headers)
 
--- | Returns an HTTP 301 (Moved Permanently) typed response.
+{- | Returns an HTTP 301 (Moved Permanently) typed response.
+
+@since 0.1.0
+-}
 return301 :: Return301 returnType index m responseCodes
 return301 = return301WithHeaders []
 
 {- | Returns an HTTP 301 (Moved Permanently) typed response with additional
 headers.
+
+@since 0.1.0
 -}
 return301WithHeaders :: HTTP.ResponseHeaders -> Return301 returnType index m responseCodes
 return301WithHeaders headers =
   pure . S.unifyTaggedUnion @"301" . (,headers)
 
--- | Returns an HTTP 302 (Found) typed response.
+{- | Returns an HTTP 302 (Found) typed response.
+
+@since 0.1.0
+-}
 return302 :: Return302 returnType index m responseCodes
 return302 = return302WithHeaders []
 
--- | Returns an HTTP 302 (Found) typed response with additional headers.
+{- | Returns an HTTP 302 (Found) typed response with additional headers.
+
+@since 0.1.0
+-}
 return302WithHeaders :: HTTP.ResponseHeaders -> Return302 returnType index m responseCodes
 return302WithHeaders headers =
   pure . S.unifyTaggedUnion @"302" . (,headers)
 
--- | Returns an HTTP 303 (See Other) typed response.
+{- | Returns an HTTP 303 (See Other) typed response.
+
+@since 0.1.0
+-}
 return303 :: Return303 returnType index m responseCodes
 return303 = return303WithHeaders []
 
--- | Returns an HTTP 303 (See Other) typed response with additional headers.
+{- | Returns an HTTP 303 (See Other) typed response with additional headers.
+
+@since 0.1.0
+-}
 return303WithHeaders :: HTTP.ResponseHeaders -> Return303 returnType index m responseCodes
 return303WithHeaders headers =
   pure . S.unifyTaggedUnion @"303" . (,headers)
 
--- | Returns an HTTP 304 (Not Modified) no-content response.
+{- | Returns an HTTP 304 (Not Modified) no-content response.
+
+@since 0.1.0
+-}
 return304 :: Return304 index m responseCodes
 return304 = return304WithHeaders []
 
 {- | Returns an HTTP 304 (Not Modified) no-content response with additional
 headers.
+
+@since 0.1.0
 -}
 return304WithHeaders :: HTTP.ResponseHeaders -> Return304 index m responseCodes
 return304WithHeaders headers =
   pure . S.unifyTaggedUnion @"304" . (,headers)
 
--- | Returns an HTTP 305 (Use Proxy) typed response.
+{- | Returns an HTTP 305 (Use Proxy) typed response.
+
+@since 0.1.0
+-}
 return305 :: Return305 returnType index m responseCodes
 return305 = return305WithHeaders []
 
--- | Returns an HTTP 305 (Use Proxy) typed response with additional headers.
+{- | Returns an HTTP 305 (Use Proxy) typed response with additional headers.
+
+@since 0.1.0
+-}
 return305WithHeaders :: HTTP.ResponseHeaders -> Return305 returnType index m responseCodes
 return305WithHeaders headers =
   pure . S.unifyTaggedUnion @"305" . (,headers)
 
--- | Returns an HTTP 307 (Temporary Redirect) typed response.
+{- | Returns an HTTP 307 (Temporary Redirect) typed response.
+
+@since 0.1.0
+-}
 return307 :: Return307 returnType index m responseCodes
 return307 = return307WithHeaders []
 
 {- | Returns an HTTP 307 (Temporary Redirect) typed response with additional
 headers.
+
+@since 0.1.0
 -}
 return307WithHeaders :: HTTP.ResponseHeaders -> Return307 returnType index m responseCodes
 return307WithHeaders headers =
   pure . S.unifyTaggedUnion @"307" . (,headers)
 
--- | Returns an HTTP 308 (Permanent Redirect) typed response.
+{- | Returns an HTTP 308 (Permanent Redirect) typed response.
+
+@since 0.1.0
+-}
 return308 :: Return308 returnType index m responseCodes
 return308 = return308WithHeaders []
 
 {- | Returns an HTTP 308 (Permanent Redirect) typed response with additional
 headers.
+
+@since 0.1.0
 -}
 return308WithHeaders :: HTTP.ResponseHeaders -> Return308 returnType index m responseCodes
 return308WithHeaders headers =
   pure . S.unifyTaggedUnion @"308" . (,headers)
 
--- | Returns an HTTP 400 (Bad Request) typed response.
+{- | Returns an HTTP 400 (Bad Request) typed response.
+
+@since 0.1.0
+-}
 return400 :: Return400 returnType index m responseCodes
 return400 = return400WithHeaders []
 
--- | Returns an HTTP 400 (Bad Request) typed response with additional headers.
+{- | Returns an HTTP 400 (Bad Request) typed response with additional headers.
+
+@since 0.1.0
+-}
 return400WithHeaders :: HTTP.ResponseHeaders -> Return400 returnType index m responseCodes
 return400WithHeaders headers =
   pure . S.unifyTaggedUnion @"400" . (,headers)
 
--- | Returns an HTTP 401 (Unauthorized) typed response.
+{- | Returns an HTTP 401 (Unauthorized) typed response.
+
+@since 0.1.0
+-}
 return401 :: Return401 returnType index m responseCodes
 return401 = return401WithHeaders []
 
--- | Returns an HTTP 401 (Unauthorized) typed response with additional headers.
+{- | Returns an HTTP 401 (Unauthorized) typed response with additional headers.
+
+@since 0.1.0
+-}
 return401WithHeaders :: HTTP.ResponseHeaders -> Return401 returnType index m responseCodes
 return401WithHeaders headers =
   pure . S.unifyTaggedUnion @"401" . (,headers)
 
--- | Returns an HTTP 402 (Payment Required) typed response.
+{- | Returns an HTTP 402 (Payment Required) typed response.
+
+@since 0.1.0
+-}
 return402 :: Return402 returnType index m responseCodes
 return402 = return402WithHeaders []
 
 {- | Returns an HTTP 402 (Payment Required) typed response with additional
 headers.
+
+@since 0.1.0
 -}
 return402WithHeaders :: HTTP.ResponseHeaders -> Return402 returnType index m responseCodes
 return402WithHeaders headers =
   pure . S.unifyTaggedUnion @"402" . (,headers)
 
--- | Returns an HTTP 403 (Forbidden) typed response.
+{- | Returns an HTTP 403 (Forbidden) typed response.
+
+@since 0.1.0
+-}
 return403 :: Return403 returnType index m responseCodes
 return403 = return403WithHeaders []
 
--- | Returns an HTTP 403 (Forbidden) typed response with additional headers.
+{- | Returns an HTTP 403 (Forbidden) typed response with additional headers.
+
+@since 0.1.0
+-}
 return403WithHeaders :: HTTP.ResponseHeaders -> Return403 returnType index m responseCodes
 return403WithHeaders headers =
   pure . S.unifyTaggedUnion @"403" . (,headers)
 
--- | Returns an HTTP 404 (Not Found) typed response.
+{- | Returns an HTTP 404 (Not Found) typed response.
+
+@since 0.1.0
+-}
 return404 :: Return404 returnType index m responseCodes
 return404 = return404WithHeaders []
 
--- | Returns an HTTP 404 (Not Found) typed response with additional headers.
+{- | Returns an HTTP 404 (Not Found) typed response with additional headers.
+
+@since 0.1.0
+-}
 return404WithHeaders :: HTTP.ResponseHeaders -> Return404 returnType index m responseCodes
 return404WithHeaders headers =
   pure . S.unifyTaggedUnion @"404" . (,headers)
 
--- | Returns an HTTP 405 (Method Not Allowed) typed response.
+{- | Returns an HTTP 405 (Method Not Allowed) typed response.
+
+@since 0.1.0
+-}
 return405 :: Return405 returnType index m responseCodes
 return405 = return405WithHeaders []
 
 {- | Returns an HTTP 405 (Method Not Allowed) typed response with additional
 headers.
+
+@since 0.1.0
 -}
 return405WithHeaders :: HTTP.ResponseHeaders -> Return405 returnType index m responseCodes
 return405WithHeaders headers =
   pure . S.unifyTaggedUnion @"405" . (,headers)
 
--- | Returns an HTTP 406 (Not Acceptable) typed response.
+{- | Returns an HTTP 406 (Not Acceptable) typed response.
+
+@since 0.1.0
+-}
 return406 :: Return406 returnType index m responseCodes
 return406 = return406WithHeaders []
 
 {- | Returns an HTTP 406 (Not Acceptable) typed response with additional
 headers.
+
+@since 0.1.0
 -}
 return406WithHeaders :: HTTP.ResponseHeaders -> Return406 returnType index m responseCodes
 return406WithHeaders headers =
   pure . S.unifyTaggedUnion @"406" . (,headers)
 
--- | Returns an HTTP 407 (Proxy Authentication Required) typed response.
+{- | Returns an HTTP 407 (Proxy Authentication Required) typed response.
+
+@since 0.1.0
+-}
 return407 :: Return407 returnType index m responseCodes
 return407 = return407WithHeaders []
 
 {- | Returns an HTTP 407 (Proxy Authentication Required) typed response with
 additional headers.
+
+@since 0.1.0
 -}
 return407WithHeaders :: HTTP.ResponseHeaders -> Return407 returnType index m responseCodes
 return407WithHeaders headers =
   pure . S.unifyTaggedUnion @"407" . (,headers)
 
--- | Returns an HTTP 408 (Request Timeout) typed response.
+{- | Returns an HTTP 408 (Request Timeout) typed response.
+
+@since 0.1.0
+-}
 return408 :: Return408 returnType index m responseCodes
 return408 = return408WithHeaders []
 
 {- | Returns an HTTP 408 (Request Timeout) typed response with additional
 headers.
+
+@since 0.1.0
 -}
 return408WithHeaders :: HTTP.ResponseHeaders -> Return408 returnType index m responseCodes
 return408WithHeaders headers =
   pure . S.unifyTaggedUnion @"408" . (,headers)
 
--- | Returns an HTTP 409 (Conflict) typed response.
+{- | Returns an HTTP 409 (Conflict) typed response.
+
+@since 0.1.0
+-}
 return409 :: Return409 returnType index m responseCodes
 return409 = return409WithHeaders []
 
--- | Returns an HTTP 409 (Conflict) typed response with additional headers.
+{- | Returns an HTTP 409 (Conflict) typed response with additional headers.
+
+@since 0.1.0
+-}
 return409WithHeaders :: HTTP.ResponseHeaders -> Return409 returnType index m responseCodes
 return409WithHeaders headers =
   pure . S.unifyTaggedUnion @"409" . (,headers)
 
--- | Returns an HTTP 410 (Gone) typed response.
+{- | Returns an HTTP 410 (Gone) typed response.
+
+@since 0.1.0
+-}
 return410 :: Return410 returnType index m responseCodes
 return410 = return410WithHeaders []
 
--- | Returns an HTTP 410 (Gone) typed response with additional headers.
+{- | Returns an HTTP 410 (Gone) typed response with additional headers.
+
+@since 0.1.0
+-}
 return410WithHeaders :: HTTP.ResponseHeaders -> Return410 returnType index m responseCodes
 return410WithHeaders headers =
   pure . S.unifyTaggedUnion @"410" . (,headers)
 
--- | Returns an HTTP 411 (Length Required) typed response.
+{- | Returns an HTTP 411 (Length Required) typed response.
+
+@since 0.1.0
+-}
 return411 :: Return411 returnType index m responseCodes
 return411 = return411WithHeaders []
 
 {- | Returns an HTTP 411 (Length Required) typed response with additional
 headers.
+
+@since 0.1.0
 -}
 return411WithHeaders :: HTTP.ResponseHeaders -> Return411 returnType index m responseCodes
 return411WithHeaders headers =
   pure . S.unifyTaggedUnion @"411" . (,headers)
 
--- | Returns an HTTP 412 (Precondition Failed) typed response.
+{- | Returns an HTTP 412 (Precondition Failed) typed response.
+
+@since 0.1.0
+-}
 return412 :: Return412 returnType index m responseCodes
 return412 = return412WithHeaders []
 
 {- | Returns an HTTP 412 (Precondition Failed) typed response with additional
 headers.
+
+@since 0.1.0
 -}
 return412WithHeaders :: HTTP.ResponseHeaders -> Return412 returnType index m responseCodes
 return412WithHeaders headers =
   pure . S.unifyTaggedUnion @"412" . (,headers)
 
--- | Returns an HTTP 413 (Payload Too Large) typed response.
+{- | Returns an HTTP 413 (Payload Too Large) typed response.
+
+@since 0.1.0
+-}
 return413 :: Return413 returnType index m responseCodes
 return413 = return413WithHeaders []
 
 {- | Returns an HTTP 413 (Payload Too Large) typed response with additional
 headers.
+
+@since 0.1.0
 -}
 return413WithHeaders :: HTTP.ResponseHeaders -> Return413 returnType index m responseCodes
 return413WithHeaders headers =
   pure . S.unifyTaggedUnion @"413" . (,headers)
 
--- | Returns an HTTP 414 (URI Too Long) typed response.
+{- | Returns an HTTP 414 (URI Too Long) typed response.
+
+@since 0.1.0
+-}
 return414 :: Return414 returnType index m responseCodes
 return414 = return414WithHeaders []
 
--- | Returns an HTTP 414 (URI Too Long) typed response with additional headers.
+{- | Returns an HTTP 414 (URI Too Long) typed response with additional headers.
+
+@since 0.1.0
+-}
 return414WithHeaders :: HTTP.ResponseHeaders -> Return414 returnType index m responseCodes
 return414WithHeaders headers =
   pure . S.unifyTaggedUnion @"414" . (,headers)
 
--- | Returns an HTTP 415 (Unsupported Media Type) typed response.
+{- | Returns an HTTP 415 (Unsupported Media Type) typed response.
+
+@since 0.1.0
+-}
 return415 :: Return415 returnType index m responseCodes
 return415 = return415WithHeaders []
 
 {- | Returns an HTTP 415 (Unsupported Media Type) typed response with
 additional headers.
+
+@since 0.1.0
 -}
 return415WithHeaders :: HTTP.ResponseHeaders -> Return415 returnType index m responseCodes
 return415WithHeaders headers =
   pure . S.unifyTaggedUnion @"415" . (,headers)
 
--- | Returns an HTTP 416 (Range Not Satisfiable) typed response.
+{- | Returns an HTTP 416 (Range Not Satisfiable) typed response.
+
+@since 0.1.0
+-}
 return416 :: Return416 returnType index m responseCodes
 return416 = return416WithHeaders []
 
 {- | Returns an HTTP 416 (Range Not Satisfiable) typed response with additional
 headers.
+
+@since 0.1.0
 -}
 return416WithHeaders :: HTTP.ResponseHeaders -> Return416 returnType index m responseCodes
 return416WithHeaders headers =
   pure . S.unifyTaggedUnion @"416" . (,headers)
 
--- | Returns an HTTP 417 (Expectation Failed) typed response.
+{- | Returns an HTTP 417 (Expectation Failed) typed response.
+
+@since 0.1.0
+-}
 return417 :: Return417 returnType index m responseCodes
 return417 = return417WithHeaders []
 
 {- | Returns an HTTP 417 (Expectation Failed) typed response with additional
 headers.
+
+@since 0.1.0
 -}
 return417WithHeaders :: HTTP.ResponseHeaders -> Return417 returnType index m responseCodes
 return417WithHeaders headers =
   pure . S.unifyTaggedUnion @"417" . (,headers)
 
--- | Returns an HTTP 418 (I'm a Teapot) typed response.
+{- | Returns an HTTP 418 (I'm a Teapot) typed response.
+
+@since 0.1.0
+-}
 return418 :: Return418 returnType index m responseCodes
 return418 = return418WithHeaders []
 
--- | Returns an HTTP 418 (I'm a Teapot) typed response with additional headers.
+{- | Returns an HTTP 418 (I'm a Teapot) typed response with additional headers.
+
+@since 0.1.0
+-}
 return418WithHeaders :: HTTP.ResponseHeaders -> Return418 returnType index m responseCodes
 return418WithHeaders headers =
   pure . S.unifyTaggedUnion @"418" . (,headers)
 
--- | Returns an HTTP 422 (Unprocessable Entity) typed response.
+{- | Returns an HTTP 422 (Unprocessable Entity) typed response.
+
+@since 0.1.0
+-}
 return422 :: Return422 returnType index m responseCodes
 return422 = return422WithHeaders []
 
 {- | Returns an HTTP 422 (Unprocessable Entity) typed response with additional
 headers.
+
+@since 0.1.0
 -}
 return422WithHeaders :: HTTP.ResponseHeaders -> Return422 returnType index m responseCodes
 return422WithHeaders headers =
   pure . S.unifyTaggedUnion @"422" . (,headers)
 
--- | Returns an HTTP 428 (Precondition Required) typed response.
+{- | Returns an HTTP 428 (Precondition Required) typed response.
+
+@since 0.1.0
+-}
 return428 :: Return428 returnType index m responseCodes
 return428 = return428WithHeaders []
 
 {- | Returns an HTTP 428 (Precondition Required) typed response with additional
 headers.
+
+@since 0.1.0
 -}
 return428WithHeaders :: HTTP.ResponseHeaders -> Return428 returnType index m responseCodes
 return428WithHeaders headers =
   pure . S.unifyTaggedUnion @"428" . (,headers)
 
--- | Returns an HTTP 429 (Too Many Requests) typed response.
+{- | Returns an HTTP 429 (Too Many Requests) typed response.
+
+@since 0.1.0
+-}
 return429 :: Return429 returnType index m responseCodes
 return429 = return429WithHeaders []
 
 {- | Returns an HTTP 429 (Too Many Requests) typed response with additional
 headers.
+
+@since 0.1.0
 -}
 return429WithHeaders :: HTTP.ResponseHeaders -> Return429 returnType index m responseCodes
 return429WithHeaders headers =
   pure . S.unifyTaggedUnion @"429" . (,headers)
 
--- | Returns an HTTP 431 (Request Header Fields Too Large) typed response.
+{- | Returns an HTTP 431 (Request Header Fields Too Large) typed response.
+
+@since 0.1.0
+-}
 return431 :: Return431 returnType index m responseCodes
 return431 = return431WithHeaders []
 
 {- | Returns an HTTP 431 (Request Header Fields Too Large) typed response with
 additional headers.
+
+@since 0.1.0
 -}
 return431WithHeaders :: HTTP.ResponseHeaders -> Return431 returnType index m responseCodes
 return431WithHeaders headers =
   pure . S.unifyTaggedUnion @"431" . (,headers)
 
--- | Returns an HTTP 500 (Internal Server Error) typed response.
+{- | Returns an HTTP 500 (Internal Server Error) typed response.
+
+@since 0.1.0
+-}
 return500 :: Return500 returnType index m responseCodes
 return500 = return500WithHeaders []
 
 {- | Returns an HTTP 500 (Internal Server Error) typed response with additional
 headers.
+
+@since 0.1.0
 -}
 return500WithHeaders :: HTTP.ResponseHeaders -> Return500 returnType index m responseCodes
 return500WithHeaders headers =
   pure . S.unifyTaggedUnion @"500" . (,headers)
 
--- | Returns an HTTP 501 (Not Implemented) typed response.
+{- | Returns an HTTP 501 (Not Implemented) typed response.
+
+@since 0.1.0
+-}
 return501 :: Return501 returnType index m responseCodes
 return501 = return501WithHeaders []
 
 {- | Returns an HTTP 501 (Not Implemented) typed response with additional
 headers.
+
+@since 0.1.0
 -}
 return501WithHeaders :: HTTP.ResponseHeaders -> Return501 returnType index m responseCodes
 return501WithHeaders headers =
   pure . S.unifyTaggedUnion @"501" . (,headers)
 
--- | Returns an HTTP 502 (Bad Gateway) typed response.
+{- | Returns an HTTP 502 (Bad Gateway) typed response.
+
+@since 0.1.0
+-}
 return502 :: Return502 returnType index m responseCodes
 return502 = return502WithHeaders []
 
--- | Returns an HTTP 502 (Bad Gateway) typed response with additional headers.
+{- | Returns an HTTP 502 (Bad Gateway) typed response with additional headers.
+
+@since 0.1.0
+-}
 return502WithHeaders :: HTTP.ResponseHeaders -> Return502 returnType index m responseCodes
 return502WithHeaders headers =
   pure . S.unifyTaggedUnion @"502" . (,headers)
 
--- | Returns an HTTP 503 (Service Unavailable) typed response.
+{- | Returns an HTTP 503 (Service Unavailable) typed response.
+
+@since 0.1.0
+-}
 return503 :: Return503 returnType index m responseCodes
 return503 = return503WithHeaders []
 
 {- | Returns an HTTP 503 (Service Unavailable) typed response with additional
 headers.
+
+@since 0.1.0
 -}
 return503WithHeaders :: HTTP.ResponseHeaders -> Return503 returnType index m responseCodes
 return503WithHeaders headers =
   pure . S.unifyTaggedUnion @"503" . (,headers)
 
--- | Returns an HTTP 504 (Gateway Timeout) typed response.
+{- | Returns an HTTP 504 (Gateway Timeout) typed response.
+
+@since 0.1.0
+-}
 return504 :: Return504 returnType index m responseCodes
 return504 = return504WithHeaders []
 
 {- | Returns an HTTP 504 (Gateway Timeout) typed response with additional
 headers.
+
+@since 0.1.0
 -}
 return504WithHeaders :: HTTP.ResponseHeaders -> Return504 returnType index m responseCodes
 return504WithHeaders headers =
   pure . S.unifyTaggedUnion @"504" . (,headers)
 
--- | Returns an HTTP 505 (HTTP Version Not Supported) typed response.
+{- | Returns an HTTP 505 (HTTP Version Not Supported) typed response.
+
+@since 0.1.0
+-}
 return505 :: Return505 returnType index m responseCodes
 return505 = return505WithHeaders []
 
 {- | Returns an HTTP 505 (HTTP Version Not Supported) typed response with
 additional headers.
+
+@since 0.1.0
 -}
 return505WithHeaders :: HTTP.ResponseHeaders -> Return505 returnType index m responseCodes
 return505WithHeaders headers =
   pure . S.unifyTaggedUnion @"505" . (,headers)
 
--- | Returns an HTTP 511 (Network Authentication Required) typed response.
+{- | Returns an HTTP 511 (Network Authentication Required) typed response.
+
+@since 0.1.0
+-}
 return511 :: Return511 returnType index m responseCodes
 return511 = return511WithHeaders []
 
 {- | Returns an HTTP 511 (Network Authentication Required) typed response with
 additional headers.
+
+@since 0.1.0
 -}
 return511WithHeaders :: HTTP.ResponseHeaders -> Return511 returnType index m responseCodes
 return511WithHeaders headers =
