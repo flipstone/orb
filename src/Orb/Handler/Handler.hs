@@ -24,6 +24,8 @@ import Data.ByteString.Lazy qualified as LBS
 import Data.Kind qualified as Kind
 import Data.Maybe (maybeToList)
 import Data.Text qualified as T
+import Fleece.Aeson qualified as FA
+import Fleece.Core qualified as FC
 import Network.Wai qualified as Wai
 import Network.Wai.Parse qualified as Wai
 import Shrubbery qualified as S
@@ -85,7 +87,11 @@ data NoRequestBody
   = NoRequestBody
 
 data RequestBody body tags where
-  RequestBody ::
+  RequestSchema ::
+    Response.Has422Response tags =>
+    (forall schema. FC.Fleece schema => schema body) ->
+    RequestBody body tags
+  RequestRawBody ::
     Response.HasResponseCodeWithType tags "422" err =>
     (LBS.ByteString -> Either err body) ->
     RequestBody body tags
@@ -109,7 +115,12 @@ runHandler ::
   m Wai.ResponseReceived
 runHandler handler route =
   case requestBody handler of
-    RequestBody bodyDecoder ->
+    RequestSchema schema ->
+      requestSchemaHandler
+        schema
+        (handlerResponseBodies handler)
+        (runPermissionAction handler route)
+    RequestRawBody bodyDecoder ->
       requestBodyHandler
         bodyDecoder
         (handlerResponseBodies handler)
@@ -206,6 +217,28 @@ requestFormDataHandler requestDecoder bodies action =
             case requestDecoder form of
               Left err -> Response.return422 err
               Right request -> action request
+
+requestSchemaHandler ::
+  ( Response.Has422Response tags
+  , Response.Has500Response tags
+  , HasLogger.HasLogger m
+  , HasRequest.HasRequest m
+  , HasRespond.HasRespond m
+  , UnliftIO.MonadUnliftIO m
+  ) =>
+  (forall schema. FC.Fleece schema => schema request) ->
+  Response.ResponseBodies tags ->
+  (request -> m (S.TaggedUnion tags)) ->
+  m Wai.ResponseReceived
+requestSchemaHandler schema bodies action =
+  emptyRequestBodyHandler bodies $ do
+    req <- HasRequest.request
+    body <- UnliftIO.liftIO $ Wai.consumeRequestBodyStrict req
+    case FA.decode schema body of
+      Left err ->
+        Response.return422 . Response.UnprocessableContentMessage $ T.pack err
+      Right request ->
+        action request
 
 requestBodyHandler ::
   ( Response.HasResponseCodeWithType tags "422" err

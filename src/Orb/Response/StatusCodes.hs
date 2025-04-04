@@ -11,91 +11,133 @@ module Orb.Response.StatusCodes
   , addResponse101
   , addResponseDocument200
   , addResponseBody200
+  , addResponseSchema200
   , addResponseDocument201
   , addResponseBody201
+  , addResponseSchema201
   , addResponseDocument202
   , addResponseBody202
+  , addResponseSchema202
   , addResponseDocument203
   , addResponseBody203
+  , addResponseSchema203
   , addResponse204
   , addResponse205
   , addResponseDocument206
   , addResponseBody206
+  , addResponseSchema206
   , addResponseDocument300
   , addResponseBody300
+  , addResponseSchema300
   , addResponseDocument301
   , addResponseBody301
+  , addResponseSchema301
   , addResponseDocument302
   , addResponseBody302
+  , addResponseSchema302
   , addResponseDocument303
   , addResponseBody303
+  , addResponseSchema303
   , addResponse304
   , addResponseDocument305
   , addResponseBody305
+  , addResponseSchema305
   , addResponseDocument307
   , addResponseBody307
+  , addResponseSchema307
   , addResponseDocument308
   , addResponseBody308
+  , addResponseSchema308
   , addResponseDocument400
   , addResponseBody400
+  , addResponseSchema400
   , addResponseDocument401
   , addResponseBody401
+  , addResponseSchema401
   , addResponseDocument402
   , addResponseBody402
+  , addResponseSchema402
   , addResponseDocument403
   , addResponseBody403
+  , addResponseSchema403
   , addResponseDocument404
   , addResponseBody404
+  , addResponseSchema404
   , addResponseDocument405
   , addResponseBody405
+  , addResponseSchema405
   , addResponseDocument406
   , addResponseBody406
+  , addResponseSchema406
   , addResponseDocument407
   , addResponseBody407
+  , addResponseSchema407
   , addResponseDocument408
   , addResponseBody408
+  , addResponseSchema408
   , addResponseDocument409
   , addResponseBody409
+  , addResponseSchema409
   , addResponseDocument410
   , addResponseBody410
+  , addResponseSchema410
   , addResponseDocument411
   , addResponseBody411
+  , addResponseSchema411
   , addResponseDocument412
   , addResponseBody412
+  , addResponseSchema412
   , addResponseDocument413
   , addResponseBody413
+  , addResponseSchema413
   , addResponseDocument414
   , addResponseBody414
+  , addResponseSchema414
   , addResponseDocument415
   , addResponseBody415
+  , addResponseSchema415
   , addResponseDocument416
   , addResponseBody416
+  , addResponseSchema416
   , addResponseDocument417
   , addResponseBody417
+  , addResponseSchema417
   , addResponseDocument418
   , addResponseBody418
+  , addResponseSchema418
   , addResponseDocument422
   , addResponseBody422
+  , addResponseSchema422
   , addResponseDocument428
   , addResponseBody428
+  , addResponseSchema428
   , addResponseDocument429
   , addResponseBody429
+  , addResponseSchema429
   , addResponseDocument431
   , addResponseBody431
+  , addResponseSchema431
   , addResponseDocument500
   , addResponseBody500
+  , addResponseSchema500
   , addResponseDocument501
   , addResponseBody501
+  , addResponseSchema501
   , addResponseDocument502
   , addResponseBody502
+  , addResponseSchema502
   , addResponseDocument503
   , addResponseBody503
+  , addResponseSchema503
   , addResponseDocument504
   , addResponseBody504
+  , addResponseSchema504
   , addResponseDocument505
   , addResponseBody505
+  , addResponseSchema505
   , addResponseDocument511
   , addResponseBody511
+  , addResponseSchema511
   , Response100
   , Response101
   , Response200
@@ -245,12 +287,14 @@ import Data.ByteString.Lazy qualified as LBS
 import Data.CaseInsensitive qualified as CI
 import Data.Map.Strict qualified as Map
 import Data.Proxy (Proxy (Proxy))
+import Fleece.Aeson qualified as FA
+import Fleece.Core qualified as FC
 import GHC.TypeLits (KnownNat)
 import Network.HTTP.Types qualified as HTTP
 import Shrubbery (type (@=))
 import Shrubbery qualified as S
 
-import Orb.Response.ContentType (ContentType)
+import Orb.Response.ContentType (ContentType, applicationJson)
 import Orb.Response.Document (Document (..))
 import Orb.Response.Response (ResponseBodiesBuilder (..), ResponseBody (..), ResponseData (..))
 import Orb.Response.Schemas (NoContent (..))
@@ -299,6 +343,48 @@ addResponseBody contentType encoder builder =
           Map.insert
             status
             (ResponseContent contentType encoder)
+            (responseStatusMapBuilder builder)
+      }
+
+{- | Adds a Fleece response for a given status code to the
+    'ResponseBodiesBuilder'.
+
+This function associates some type @a@ to a response code identified by the
+type-level @tag@. The response body will be the encoding of the type as encoded
+by Fleece, and the @Content-Type@ will be set to /application\/json/.
+
+@since 0.1.0
+-}
+addResponseSchema ::
+  forall tag tags a.
+  KnownHTTPStatus tag =>
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder ((tag @= (a, HTTP.ResponseHeaders)) : tags)
+addResponseSchema schema builder =
+  let
+    proxyTag :: Proxy tag
+    proxyTag = Proxy
+
+    status =
+      httpStatusVal proxyTag
+
+    runEncoder :: (a, HTTP.ResponseHeaders) -> ResponseData
+    runEncoder (value, headers) =
+      ResponseData
+        { responseDataStatus = status
+        , responseDataBytes = FA.encode schema value
+        , responseDataContentType = Just applicationJson
+        , responseDataExtraHeaders = headers
+        }
+  in
+    ResponseBodiesBuilder
+      { encodeResponseBranchesBuilder =
+          S.taggedBranch @tag runEncoder (encodeResponseBranchesBuilder builder)
+      , responseStatusMapBuilder =
+          Map.insert
+            status
+            (ResponseSchema schema)
             (responseStatusMapBuilder builder)
       }
 
@@ -1147,7 +1233,7 @@ addResponse101 =
 
 @
 responseBodies
-  . addResponseBody200 myTypeEncoderFn
+  . addResponseBody200 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -1164,6 +1250,26 @@ addResponseBody200 ::
   ResponseBodiesBuilder (Response200 a : responseCodes)
 addResponseBody200 =
   addResponseBody @"200"
+
+{- | Appends an HTTP 200 (OK) Fleece response to the set of possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema200 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema200 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response200 a : responseCodes)
+addResponseSchema200 =
+  addResponseSchema @"200"
 
 {- | Appends an HTTP 200 (OK) document response to the set of possible
 responses.
@@ -1192,7 +1298,7 @@ responses.
 
 @
 responseBodies
-  . addResponseBody201 myTypeEncoderFn
+  . addResponseBody201 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -1209,6 +1315,27 @@ addResponseBody201 ::
   ResponseBodiesBuilder (Response201 a : responseCodes)
 addResponseBody201 =
   addResponseBody @"201"
+
+{- | Appends an HTTP 201 (Created) Fleece response to the set of possible
+responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema201 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema201 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response201 a : responseCodes)
+addResponseSchema201 =
+  addResponseSchema @"201"
 
 {- | Appends an HTTP 201 (Created) document response to the set of possible
 responses.
@@ -1237,7 +1364,7 @@ responses.
 
 @
 responseBodies
-  . addResponseBody202 myTypeEncoderFn
+  . addResponseBody202 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -1254,6 +1381,27 @@ addResponseBody202 ::
   ResponseBodiesBuilder (Response202 a : responseCodes)
 addResponseBody202 =
   addResponseBody @"202"
+
+{- | Appends an HTTP 201 (Accepted) Fleece response to the set of possible
+responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema202 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema202 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response202 a : responseCodes)
+addResponseSchema202 =
+  addResponseSchema @"202"
 
 {- | Appends an HTTP 202 (Accepted) document response to the set of possible
 responses.
@@ -1282,7 +1430,7 @@ set of possible responses.
 
 @
 responseBodies
-  . addResponseBody203 myTypeEncoderFn
+  . addResponseBody203 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -1299,6 +1447,27 @@ addResponseBody203 ::
   ResponseBodiesBuilder (Response203 a : responseCodes)
 addResponseBody203 =
   addResponseBody @"203"
+
+{- | Appends an HTTP 203 (Non-Authoritative Information) Fleece response to the
+set of possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema203 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema203 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response203 a : responseCodes)
+addResponseSchema203 =
+  addResponseSchema @"203"
 
 {- | Appends an HTTP 203 (Non-Authoritative Information) document response to
 the set of possible responses.
@@ -1327,7 +1496,7 @@ possible responses.
 
 @
 responseBodies
-  . addResponse204 myTypeEncoderFn
+  . addResponse204 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -1365,7 +1534,7 @@ possible responses.
 
 @
 responseBodies
-  . addResponseBody206 myTypeEncoderFn
+  . addResponseBody206 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -1382,6 +1551,27 @@ addResponseBody206 ::
   ResponseBodiesBuilder (Response206 a : responseCodes)
 addResponseBody206 =
   addResponseBody @"206"
+
+{- | Appends an HTTP 206 (Partial Content) Fleece response to the set of
+possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema206 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema206 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response206 a : responseCodes)
+addResponseSchema206 =
+  addResponseSchema @"206"
 
 {- | Appends an HTTP 206 (Partial Content) document response to the set of
 possible responses.
@@ -1410,7 +1600,7 @@ possible responses.
 
 @
 responseBodies
-  . addResponseBody300 myTypeEncoderFn
+  . addResponseBody300 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -1427,6 +1617,27 @@ addResponseBody300 ::
   ResponseBodiesBuilder (Response300 a : responseCodes)
 addResponseBody300 =
   addResponseBody @"300"
+
+{- | Appends an HTTP 300 (Multiple Choices) Fleece response to the set of
+possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema300 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema300 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response300 a : responseCodes)
+addResponseSchema300 =
+  addResponseSchema @"300"
 
 {- | Appends an HTTP 300 (Multiple Choices) document response to the set of
 possible responses.
@@ -1455,7 +1666,7 @@ possible responses.
 
 @
 responseBodies
-  . addResponseBody301 myTypeEncoderFn
+  . addResponseBody301 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -1472,6 +1683,27 @@ addResponseBody301 ::
   ResponseBodiesBuilder (Response301 a : responseCodes)
 addResponseBody301 =
   addResponseBody @"301"
+
+{- | Appends an HTTP 301 (Moved Permanently) Fleece response to the set of
+possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema301 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema301 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response301 a : responseCodes)
+addResponseSchema301 =
+  addResponseSchema @"301"
 
 {- | Appends an HTTP 301 (Moved Permanently) document response to the set of
 possible responses.
@@ -1500,7 +1732,7 @@ responses.
 
 @
 responseBodies
-  . addResponseBody302 myTypeEncoderFn
+  . addResponseBody302 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -1517,6 +1749,27 @@ addResponseBody302 ::
   ResponseBodiesBuilder (Response302 a : responseCodes)
 addResponseBody302 =
   addResponseBody @"302"
+
+{- | Appends an HTTP 302 (Found) Fleece response to the set of possible
+responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema302 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema302 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response302 a : responseCodes)
+addResponseSchema302 =
+  addResponseSchema @"302"
 
 {- | Appends an HTTP 302 (Found) document response to the set of possible
 responses.
@@ -1545,7 +1798,7 @@ responses.
 
 @
 responseBodies
-  . addResponseBody303 myTypeEncoderFn
+  . addResponseBody303 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -1562,6 +1815,27 @@ addResponseBody303 ::
   ResponseBodiesBuilder (Response303 a : responseCodes)
 addResponseBody303 =
   addResponseBody @"303"
+
+{- | Appends an HTTP 303 (See Other) Fleece response to the set of possible
+responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema303 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema303 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response303 a : responseCodes)
+addResponseSchema303 =
+  addResponseSchema @"303"
 
 {- | Appends an HTTP 303 (See Other) document response to the set of possible
 responses.
@@ -1590,7 +1864,7 @@ possible responses.
 
 @
 responseBodies
-  . addResponse304 myTypeEncoderFn
+  . addResponse304 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -1609,7 +1883,7 @@ responses.
 
 @
 responseBodies
-  . addResponseBody305 myTypeEncoderFn
+  . addResponseBody305 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -1626,6 +1900,27 @@ addResponseBody305 ::
   ResponseBodiesBuilder (Response305 a : responseCodes)
 addResponseBody305 =
   addResponseBody @"305"
+
+{- | Appends an HTTP 305 (Use Proxy) Fleece response to the set of possible
+responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema305 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema305 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response305 a : responseCodes)
+addResponseSchema305 =
+  addResponseSchema @"305"
 
 {- | Appends an HTTP 305 (Use Proxy) document response to the set of possible
 responses.
@@ -1654,7 +1949,7 @@ possible responses.
 
 @
 responseBodies
-  . addResponseBody307 myTypeEncoderFn
+  . addResponseBody307 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -1671,6 +1966,27 @@ addResponseBody307 ::
   ResponseBodiesBuilder (Response307 a : responseCodes)
 addResponseBody307 =
   addResponseBody @"307"
+
+{- | Appends an HTTP 307 (Temporary Redirect) Fleece response to the set of
+possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema307 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema307 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response307 a : responseCodes)
+addResponseSchema307 =
+  addResponseSchema @"307"
 
 {- | Appends an HTTP 307 (Temporary Redirect) document response to the set of
 possible responses.
@@ -1699,7 +2015,7 @@ possible responses.
 
 @
 responseBodies
-  . addResponseBody308 myTypeEncoderFn
+  . addResponseBody308 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -1716,6 +2032,27 @@ addResponseBody308 ::
   ResponseBodiesBuilder (Response308 a : responseCodes)
 addResponseBody308 =
   addResponseBody @"308"
+
+{- | Appends an HTTP 308 (Permanent Redirect) Fleece response to the set of
+possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema308 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema308 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response308 a : responseCodes)
+addResponseSchema308 =
+  addResponseSchema @"308"
 
 {- | Appends an HTTP 308 (Permanent Redirect) document response to the set of
 possible responses.
@@ -1744,7 +2081,7 @@ responses.
 
 @
 responseBodies
-  . addResponseBody400 myTypeEncoderFn
+  . addResponseBody400 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -1761,6 +2098,27 @@ addResponseBody400 ::
   ResponseBodiesBuilder (Response400 a : responseCodes)
 addResponseBody400 =
   addResponseBody @"400"
+
+{- | Appends an HTTP 400 (Bad Request) Fleece response to the set of possible
+responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema400 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema400 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response400 a : responseCodes)
+addResponseSchema400 =
+  addResponseSchema @"400"
 
 {- | Appends an HTTP 400 (Bad Request) document response to the set of possible
 responses.
@@ -1789,7 +2147,7 @@ responses.
 
 @
 responseBodies
-  . addResponseBody401 myTypeEncoderFn
+  . addResponseBody401 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -1806,6 +2164,27 @@ addResponseBody401 ::
   ResponseBodiesBuilder (Response401 a : responseCodes)
 addResponseBody401 =
   addResponseBody @"401"
+
+{- | Appends an HTTP 401 (Unauthorized) Fleece response to the set of possible
+responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema401 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema401 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response401 a : responseCodes)
+addResponseSchema401 =
+  addResponseSchema @"401"
 
 {- | Appends an HTTP 401 (Unauthorized) document response to the set of
 possible responses.
@@ -1834,7 +2213,7 @@ possible responses.
 
 @
 responseBodies
-  . addResponseBody402 myTypeEncoderFn
+  . addResponseBody402 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -1851,6 +2230,27 @@ addResponseBody402 ::
   ResponseBodiesBuilder (Response402 a : responseCodes)
 addResponseBody402 =
   addResponseBody @"402"
+
+{- | Appends an HTTP 402 (Payment Required) Fleece response to the set of
+possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema402 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema402 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response402 a : responseCodes)
+addResponseSchema402 =
+  addResponseSchema @"402"
 
 {- | Appends an HTTP 402 (Payment Required) document response to the set of
 possible responses.
@@ -1879,7 +2279,7 @@ responses.
 
 @
 responseBodies
-  . addResponseBody403 myTypeEncoderFn
+  . addResponseBody403 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -1896,6 +2296,27 @@ addResponseBody403 ::
   ResponseBodiesBuilder (Response403 a : responseCodes)
 addResponseBody403 =
   addResponseBody @"403"
+
+{- | Appends an HTTP 403 (Forbidden) Fleece response to the set of possible
+responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema403 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema403 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response403 a : responseCodes)
+addResponseSchema403 =
+  addResponseSchema @"403"
 
 {- | Appends an HTTP 403 (Forbidden) document response to the set of possible
 responses.
@@ -1924,7 +2345,7 @@ responses.
 
 @
 responseBodies
-  . addResponseBody404 myTypeEncoderFn
+  . addResponseBody404 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -1941,6 +2362,27 @@ addResponseBody404 ::
   ResponseBodiesBuilder (Response404 a : responseCodes)
 addResponseBody404 =
   addResponseBody @"404"
+
+{- | Appends an HTTP 404 (Not Found) Fleece response to the set of possible
+responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema404 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema404 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response404 a : responseCodes)
+addResponseSchema404 =
+  addResponseSchema @"404"
 
 {- | Appends an HTTP 404 (Not Found) document response to the set of possible
 responses.
@@ -1969,7 +2411,7 @@ possible responses.
 
 @
 responseBodies
-  . addResponseBody405 myTypeEncoderFn
+  . addResponseBody405 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -1986,6 +2428,27 @@ addResponseBody405 ::
   ResponseBodiesBuilder (Response405 a : responseCodes)
 addResponseBody405 =
   addResponseBody @"405"
+
+{- | Appends an HTTP 405 (Method Not Allowed) Fleece response to the set of
+possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema405 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema405 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response405 a : responseCodes)
+addResponseSchema405 =
+  addResponseSchema @"405"
 
 {- | Appends an HTTP 405 (Method Not Allowed) document response to the set of
 possible responses.
@@ -2014,7 +2477,7 @@ responses.
 
 @
 responseBodies
-  . addResponseBody406 myTypeEncoderFn
+  . addResponseBody406 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -2031,6 +2494,27 @@ addResponseBody406 ::
   ResponseBodiesBuilder (Response406 a : responseCodes)
 addResponseBody406 =
   addResponseBody @"406"
+
+{- | Appends an HTTP 406 (Not Acceptable) Fleece response to the set of
+possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema406 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema406 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response406 a : responseCodes)
+addResponseSchema406 =
+  addResponseSchema @"406"
 
 {- | Appends an HTTP 406 (Not Acceptable) document response to the set of
 possible responses.
@@ -2059,7 +2543,7 @@ set of possible responses.
 
 @
 responseBodies
-  . addResponseBody407 myTypeEncoderFn
+  . addResponseBody407 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -2076,6 +2560,27 @@ addResponseBody407 ::
   ResponseBodiesBuilder (Response407 a : responseCodes)
 addResponseBody407 =
   addResponseBody @"407"
+
+{- | Appends an HTTP 407 (Proxy Authentication Required) Fleece response to the
+set of possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema407 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema407 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response407 a : responseCodes)
+addResponseSchema407 =
+  addResponseSchema @"407"
 
 {- | Appends an HTTP 407 (Proxy Authentication Required) document response to
 the set of possible responses.
@@ -2104,7 +2609,7 @@ possible responses.
 
 @
 responseBodies
-  . addResponseBody408 myTypeEncoderFn
+  . addResponseBody408 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -2121,6 +2626,27 @@ addResponseBody408 ::
   ResponseBodiesBuilder (Response408 a : responseCodes)
 addResponseBody408 =
   addResponseBody @"408"
+
+{- | Appends an HTTP 408 (Request Timeout) Fleece response to the set of
+possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema408 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema408 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response408 a : responseCodes)
+addResponseSchema408 =
+  addResponseSchema @"408"
 
 {- | Appends an HTTP 408 (Request Timeout) document response to the set of
 possible responses.
@@ -2149,7 +2675,7 @@ responses.
 
 @
 responseBodies
-  . addResponseBody409 myTypeEncoderFn
+  . addResponseBody409 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -2166,6 +2692,27 @@ addResponseBody409 ::
   ResponseBodiesBuilder (Response409 a : responseCodes)
 addResponseBody409 =
   addResponseBody @"409"
+
+{- | Appends an HTTP 409 (Conflict) Fleece response to the set of possible
+responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema409 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema409 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response409 a : responseCodes)
+addResponseSchema409 =
+  addResponseSchema @"409"
 
 {- | Appends an HTTP 409 (Conflict) document response to the set of possible
 responses.
@@ -2194,7 +2741,7 @@ responses.
 
 @
 responseBodies
-  . addResponseBody410 myTypeEncoderFn
+  . addResponseBody410 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -2211,6 +2758,27 @@ addResponseBody410 ::
   ResponseBodiesBuilder (Response410 a : responseCodes)
 addResponseBody410 =
   addResponseBody @"410"
+
+{- | Appends an HTTP 410 (Gone) Fleece response to the set of possible
+responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema410 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema410 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response410 a : responseCodes)
+addResponseSchema410 =
+  addResponseSchema @"410"
 
 {- | Appends an HTTP 410 (Gone) document response to the set of possible
 responses.
@@ -2239,7 +2807,7 @@ possible responses.
 
 @
 responseBodies
-  . addResponseBody411 myTypeEncoderFn
+  . addResponseBody411 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -2256,6 +2824,27 @@ addResponseBody411 ::
   ResponseBodiesBuilder (Response411 a : responseCodes)
 addResponseBody411 =
   addResponseBody @"411"
+
+{- | Appends an HTTP 411 (Length Required) Fleece response to the set of
+possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema411 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema411 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response411 a : responseCodes)
+addResponseSchema411 =
+  addResponseSchema @"411"
 
 {- | Appends an HTTP 411 (Length Required) document response to the set of
 possible responses.
@@ -2284,7 +2873,7 @@ possible responses.
 
 @
 responseBodies
-  . addResponseBody412 myTypeEncoderFn
+  . addResponseBody412 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -2301,6 +2890,27 @@ addResponseBody412 ::
   ResponseBodiesBuilder (Response412 a : responseCodes)
 addResponseBody412 =
   addResponseBody @"412"
+
+{- | Appends an HTTP 412 (Precondition Failed) Fleece response to the set of
+possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema412 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema412 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response412 a : responseCodes)
+addResponseSchema412 =
+  addResponseSchema @"412"
 
 {- | Appends an HTTP 412 (Precondition Failed) document response to the set of
 possible responses.
@@ -2329,7 +2939,7 @@ possible responses.
 
 @
 responseBodies
-  . addResponseBody413 myTypeEncoderFn
+  . addResponseBody413 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -2346,6 +2956,27 @@ addResponseBody413 ::
   ResponseBodiesBuilder (Response413 a : responseCodes)
 addResponseBody413 =
   addResponseBody @"413"
+
+{- | Appends an HTTP 413 (Payload Too Large) Fleece response to the set of
+possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema413 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema413 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response413 a : responseCodes)
+addResponseSchema413 =
+  addResponseSchema @"413"
 
 {- | Appends an HTTP 413 (Payload Too Large) document response to the set of
 possible responses.
@@ -2374,7 +3005,7 @@ responses.
 
 @
 responseBodies
-  . addResponseBody414 myTypeEncoderFn
+  . addResponseBody414 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -2391,6 +3022,27 @@ addResponseBody414 ::
   ResponseBodiesBuilder (Response414 a : responseCodes)
 addResponseBody414 =
   addResponseBody @"414"
+
+{- | Appends an HTTP 414 (URI Too Long) Fleece response to the set of possible
+responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema414 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema414 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response414 a : responseCodes)
+addResponseSchema414 =
+  addResponseSchema @"414"
 
 {- | Appends an HTTP 414 (URI Too Long) document response to the set of
 possible responses.
@@ -2419,7 +3071,7 @@ possible responses.
 
 @
 responseBodies
-  . addResponseBody415 myTypeEncoderFn
+  . addResponseBody415 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -2436,6 +3088,27 @@ addResponseBody415 ::
   ResponseBodiesBuilder (Response415 a : responseCodes)
 addResponseBody415 =
   addResponseBody @"415"
+
+{- | Appends an HTTP 415 (Unsupported Media Type) Fleece response to the set of
+possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema415 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema415 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response415 a : responseCodes)
+addResponseSchema415 =
+  addResponseSchema @"415"
 
 {- | Appends an HTTP 415 (Unsupported Media Type) document response to the set
 of possible responses.
@@ -2464,7 +3137,7 @@ possible responses.
 
 @
 responseBodies
-  . addResponseBody416 myTypeEncoderFn
+  . addResponseBody416 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -2481,6 +3154,27 @@ addResponseBody416 ::
   ResponseBodiesBuilder (Response416 a : responseCodes)
 addResponseBody416 =
   addResponseBody @"416"
+
+{- | Appends an HTTP 416 (Range Not Satisfiable) Fleece response to the set of
+possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema416 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema416 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response416 a : responseCodes)
+addResponseSchema416 =
+  addResponseSchema @"416"
 
 {- | Appends an HTTP 416 (Range Not Satisfiable) document response to the set
 of possible responses.
@@ -2509,7 +3203,7 @@ possible responses.
 
 @
 responseBodies
-  . addResponseBody417 myTypeEncoderFn
+  . addResponseBody417 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -2526,6 +3220,27 @@ addResponseBody417 ::
   ResponseBodiesBuilder (Response417 a : responseCodes)
 addResponseBody417 =
   addResponseBody @"417"
+
+{- | Appends an HTTP 417 (Expectation Failed) Fleece response to the set of
+possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema417 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema417 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response417 a : responseCodes)
+addResponseSchema417 =
+  addResponseSchema @"417"
 
 {- | Appends an HTTP 417 (Expectation Failed) document response to the set of
 possible responses.
@@ -2554,7 +3269,7 @@ responses.
 
 @
 responseBodies
-  . addResponseBody418 myTypeEncoderFn
+  . addResponseBody418 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -2571,6 +3286,27 @@ addResponseBody418 ::
   ResponseBodiesBuilder (Response418 a : responseCodes)
 addResponseBody418 =
   addResponseBody @"418"
+
+{- | Appends an HTTP 418 (I'm a Teapot) Fleece response to the set of possible
+responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema418 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema418 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response418 a : responseCodes)
+addResponseSchema418 =
+  addResponseSchema @"418"
 
 {- | Appends an HTTP 418 (I'm a Teapot) document response to the set of
 possible responses.
@@ -2599,7 +3335,7 @@ possible responses.
 
 @
 responseBodies
-  . addResponseBody422 myTypeEncoderFn
+  . addResponseBody422 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -2616,6 +3352,27 @@ addResponseBody422 ::
   ResponseBodiesBuilder (Response422 a : responseCodes)
 addResponseBody422 =
   addResponseBody @"422"
+
+{- | Appends an HTTP 422 (Unprocessable Entity) Fleece response to the set of
+possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema422 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema422 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response422 a : responseCodes)
+addResponseSchema422 =
+  addResponseSchema @"422"
 
 {- | Appends an HTTP 422 (Unprocessable Entity) document response to the set of
 possible responses.
@@ -2644,7 +3401,7 @@ possible responses.
 
 @
 responseBodies
-  . addResponseBody428 myTypeEncoderFn
+  . addResponseBody428 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -2661,6 +3418,27 @@ addResponseBody428 ::
   ResponseBodiesBuilder (Response428 a : responseCodes)
 addResponseBody428 =
   addResponseBody @"428"
+
+{- | Appends an HTTP 428 (Precondition Required) Fleece response to the set of
+possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema428 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema428 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response428 a : responseCodes)
+addResponseSchema428 =
+  addResponseSchema @"428"
 
 {- | Appends an HTTP 428 (Precondition Required) document response to the set
 of possible responses.
@@ -2689,7 +3467,7 @@ possible responses.
 
 @
 responseBodies
-  . addResponseBody429 myTypeEncoderFn
+  . addResponseBody429 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -2706,6 +3484,27 @@ addResponseBody429 ::
   ResponseBodiesBuilder (Response429 a : responseCodes)
 addResponseBody429 =
   addResponseBody @"429"
+
+{- | Appends an HTTP 429 (Too Many Requests) Fleece response to the set of
+possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema429 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema429 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response429 a : responseCodes)
+addResponseSchema429 =
+  addResponseSchema @"429"
 
 {- | Appends an HTTP 429 (Too Many Requests) document response to the set of
 possible responses.
@@ -2734,7 +3533,7 @@ the set of possible responses.
 
 @
 responseBodies
-  . addResponseBody431 myTypeEncoderFn
+  . addResponseBody431 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -2751,6 +3550,27 @@ addResponseBody431 ::
   ResponseBodiesBuilder (Response431 a : responseCodes)
 addResponseBody431 =
   addResponseBody @"431"
+
+{- | Appends an HTTP 431 (Request Header Fields Too Large) Fleece response to
+the set of possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema431 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema431 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response431 a : responseCodes)
+addResponseSchema431 =
+  addResponseSchema @"431"
 
 {- | Appends an HTTP 431 (Request Header Fields Too Large) document response to
 the set of possible responses.
@@ -2779,7 +3599,7 @@ possible responses.
 
 @
 responseBodies
-  . addResponseBody500 myTypeEncoderFn
+  . addResponseBody500 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -2796,6 +3616,27 @@ addResponseBody500 ::
   ResponseBodiesBuilder (Response500 a : responseCodes)
 addResponseBody500 =
   addResponseBody @"500"
+
+{- | Appends an HTTP 500 (Internal Server Error) Fleece response to the set of
+possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema500 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema500 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response500 a : responseCodes)
+addResponseSchema500 =
+  addResponseSchema @"500"
 
 {- | Appends an HTTP 500 (Internal Server Error) document response to the set
 of possible responses.
@@ -2824,7 +3665,7 @@ possible responses.
 
 @
 responseBodies
-  . addResponseBody501 myTypeEncoderFn
+  . addResponseBody501 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -2841,6 +3682,27 @@ addResponseBody501 ::
   ResponseBodiesBuilder (Response501 a : responseCodes)
 addResponseBody501 =
   addResponseBody @"501"
+
+{- | Appends an HTTP 501 (Not Implemented) Fleece response to the set of
+possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema501 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema501 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response501 a : responseCodes)
+addResponseSchema501 =
+  addResponseSchema @"501"
 
 {- | Appends an HTTP 501 (Not Implemented) document response to the set of
 possible responses.
@@ -2869,7 +3731,7 @@ responses.
 
 @
 responseBodies
-  . addResponseBody502 myTypeEncoderFn
+  . addResponseBody502 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -2886,6 +3748,27 @@ addResponseBody502 ::
   ResponseBodiesBuilder (Response502 a : responseCodes)
 addResponseBody502 =
   addResponseBody @"502"
+
+{- | Appends an HTTP 502 (Bad Gateway) Fleece response to the set of possible
+responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema502 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema502 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response502 a : responseCodes)
+addResponseSchema502 =
+  addResponseSchema @"502"
 
 {- | Appends an HTTP 502 (Bad Gateway) document response to the set of possible
 responses.
@@ -2914,7 +3797,7 @@ possible responses.
 
 @
 responseBodies
-  . addResponseBody503 myTypeEncoderFn
+  . addResponseBody503 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -2931,6 +3814,27 @@ addResponseBody503 ::
   ResponseBodiesBuilder (Response503 a : responseCodes)
 addResponseBody503 =
   addResponseBody @"503"
+
+{- | Appends an HTTP 503 (Service Unavailable) Fleece response to the set of
+possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema503 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema503 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response503 a : responseCodes)
+addResponseSchema503 =
+  addResponseSchema @"503"
 
 {- | Appends an HTTP 503 (Service Unavailable) document response to the set of
 possible responses.
@@ -2959,7 +3863,7 @@ possible responses.
 
 @
 responseBodies
-  . addResponseBody504 myTypeEncoderFn
+  . addResponseBody504 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -2976,6 +3880,27 @@ addResponseBody504 ::
   ResponseBodiesBuilder (Response504 a : responseCodes)
 addResponseBody504 =
   addResponseBody @"504"
+
+{- | Appends an HTTP 504 (Gateway Timeout) Fleece response to the set of
+possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema504 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema504 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response504 a : responseCodes)
+addResponseSchema504 =
+  addResponseSchema @"504"
 
 {- | Appends an HTTP 504 (Gateway Timeout) document response to the set of
 possible responses.
@@ -3004,7 +3929,7 @@ of possible responses.
 
 @
 responseBodies
-  . addResponseBody505 myTypeEncoderFn
+  . addResponseBody505 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -3021,6 +3946,27 @@ addResponseBody505 ::
   ResponseBodiesBuilder (Response505 a : responseCodes)
 addResponseBody505 =
   addResponseBody @"505"
+
+{- | Appends an HTTP 505 (HTTP Version Not Supported) Fleece response to the
+set of possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema505 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema505 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response505 a : responseCodes)
+addResponseSchema505 =
+  addResponseSchema @"505"
 
 {- | Appends an HTTP 505 (HTTP Version Not Supported) document response to the
 set of possible responses.
@@ -3049,7 +3995,7 @@ the set of possible responses.
 
 @
 responseBodies
-  . addResponseBody511 myTypeEncoderFn
+  . addResponseBody511 myContentType myTypeEncoderFn
   $ noResponseBodies
 @
 
@@ -3066,6 +4012,27 @@ addResponseBody511 ::
   ResponseBodiesBuilder (Response511 a : responseCodes)
 addResponseBody511 =
   addResponseBody @"511"
+
+{- | Appends an HTTP 511 (Network Authentication Required) Fleece response to
+the set of possible responses.
+
+/Example usage/:
+
+@
+responseBodies
+  . addResponseSchema511 myTypeSchema
+  $ noResponseBodies
+@
+
+@since 0.1.0
+-}
+addResponseSchema511 ::
+  forall a responseCodes.
+  (forall schema. FC.Fleece schema => schema a) ->
+  ResponseBodiesBuilder responseCodes ->
+  ResponseBodiesBuilder (Response511 a : responseCodes)
+addResponseSchema511 =
+  addResponseSchema @"511"
 
 {- | Appends an HTTP 511 (Network Authentication Required) document response to
 the set of possible responses.
