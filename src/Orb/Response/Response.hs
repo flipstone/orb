@@ -21,6 +21,7 @@ import Control.Monad.IO.Class qualified as MIO
 import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as LBS
 import Data.Map.Strict qualified as Map
+import Fleece.Core qualified as FC
 import GHC.TypeLits (KnownNat)
 import Network.HTTP.Types qualified as HTTP
 import Network.Wai (Response, ResponseReceived)
@@ -39,9 +40,14 @@ responseBodyList =
   Map.toList . responseStatusMap
 
 data ResponseBody where
-  ResponseContent :: ContentType -> (a -> LBS.ByteString) -> ResponseBody
-  ResponseDocument :: ResponseBody
-  EmptyResponseBody :: ResponseBody
+  ResponseContent ::
+    ContentType -> (body -> LBS.ByteString) -> ResponseBody
+  ResponseSchema ::
+    (forall schema. FC.Fleece schema => schema body) -> ResponseBody
+  ResponseDocument ::
+    ResponseBody
+  EmptyResponseBody ::
+    ResponseBody
 
 data ResponseData = ResponseData
   { responseDataStatus :: HTTP.Status
