@@ -1382,7 +1382,7 @@ addResponseBody202 ::
 addResponseBody202 =
   addResponseBody @"202"
 
-{- | Appends an HTTP 201 (Accepted) Fleece response to the set of possible
+{- | Appends an HTTP 202 (Accepted) Fleece response to the set of possible
 responses.
 
 /Example usage/:
