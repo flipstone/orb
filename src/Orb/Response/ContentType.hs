@@ -13,6 +13,7 @@ module Orb.Response.ContentType
   , applicationXRarCompressed
   , applicationXSh
   , applicationXTar
+  , applicationXWwwFormUrlencoded
   , applicationXhtmlXml
   , applicationXml
   , applicationZip
@@ -29,11 +30,13 @@ module Orb.Response.ContentType
   , imageTiff
   , imageWebp
   , imageXIcon
+  , multipartFormData
   , textCalendar
   , textCss
   , textCsv
   , textHtml
   , textJavascript
+  , textPlain
   , videoMpeg
   , videoWebm
   , videoXMsvideo
@@ -122,6 +125,12 @@ applicationXSh = BS8.pack "application/x-sh"
 -}
 applicationXTar :: ContentType
 applicationXTar = BS8.pack "application/x-tar"
+
+{- | A 'BS.ByteString' representation of the
+    /application\/x-www-form-urlencoded/ MIME type (HTML form data).
+-}
+applicationXWwwFormUrlencoded :: ContentType
+applicationXWwwFormUrlencoded = BS8.pack "application/x-www-form-urlencoded"
 
 {- | A 'BS.ByteString' representation of the /application\/xhtml+xml/ MIME type
 (XHTML documents).
@@ -219,6 +228,12 @@ icons).
 imageXIcon :: ContentType
 imageXIcon = BS8.pack "image/x-icon"
 
+{- | A 'BS.ByteString' representation of the /multipart\/form-data/ MIME type
+    (HTML form data).
+-}
+multipartFormData :: ContentType
+multipartFormData = BS8.pack "multipart/form-data"
+
 {- | A 'BS.ByteString' representation of the /text\/calendar/ MIME type (.ics
 calendar files).
 -}
@@ -248,6 +263,12 @@ scripts).
 -}
 textJavascript :: ContentType
 textJavascript = BS8.pack "text/javascript"
+
+{- | A 'BS.ByteString' representation of the /text\/plain/ MIME type (plain
+text).
+-}
+textPlain :: ContentType
+textPlain = BS8.pack "text/plain"
 
 {- | A 'BS.ByteString' representation of the /video\/mpeg/ MIME type (.mpeg or
 .mpg videos).
