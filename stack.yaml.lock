@@ -41,6 +41,19 @@ packages:
     version: 0.2.3.0
   original:
     url: https://github.com/flipstone/shrubbery/archive/ae5c282af3029179d5ab43a927aecbc8e44971e4.tar.gz
+- completed:
+    name: beeline-routing
+    pantry-tree:
+      sha256: 32db8718214f2c6dc2b7f4171ea79f7bef693e562b31e6823497e6ce15fa6a69
+      size: 1174
+    sha256: 7c52a7a8a2665b0da6b5c8ba74c340ab073b5e6a8e494ae3775a4f7bd9896513
+    size: 24829
+    subdir: beeline-routing
+    url: https://github.com/flipstone/beeline/archive/6f4d696469463ed892249074dbaf3fa96f145685.tar.gz
+    version: 0.2.4.0
+  original:
+    subdir: beeline-routing
+    url: https://github.com/flipstone/beeline/archive/6f4d696469463ed892249074dbaf3fa96f145685.tar.gz
 snapshots:
 - completed:
     sha256: 6c5aeace2ca5ecde793a9e0acfaa730ec8f384aa2f6183a2a252f5f9ec55d623

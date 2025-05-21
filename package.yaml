@@ -31,6 +31,7 @@ flags:
 
 dependencies:
   - base >= 4.7 && < 5
+  - beeline-routing
   - bytestring
   - case-insensitive
   - containers
@@ -42,6 +43,7 @@ dependencies:
   - text
   - wai
   - wai-extra
+  - warp
 
 library:
   source-dirs: src

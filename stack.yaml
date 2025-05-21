@@ -33,6 +33,11 @@ extra-deps:
 # Shrubbery
 - github: flipstone/shrubbery
   commit: ae5c282af3029179d5ab43a927aecbc8e44971e4
+# Beeline
+- github: flipstone/beeline
+  commit: 6f4d696469463ed892249074dbaf3fa96f145685
+  subdirs:
+    - beeline-routing
 
 # Override default flag values for local packages and extra-deps
 flags:
