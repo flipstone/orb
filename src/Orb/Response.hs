@@ -3,6 +3,7 @@ module Orb.Response
   )
 where
 
+import Orb.Response.AddResponseHeaders as Export
 import Orb.Response.ContentType as Export
 import Orb.Response.Document as Export
 import Orb.Response.HasResponse as Export
