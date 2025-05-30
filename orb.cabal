@@ -41,6 +41,7 @@ library
       Orb.HasRequest
       Orb.HasRespond
       Orb.Response
+      Orb.Response.AddResponseHeaders
       Orb.Response.ContentType
       Orb.Response.Document
       Orb.Response.HasResponse
