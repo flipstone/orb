@@ -17,6 +17,7 @@ module Orb.Handler.Handler
   , NoRequestBody (..)
   , RequestBody (..)
   , useRouteAsPermissionAction
+  , encodeResponse
   )
 where
 
