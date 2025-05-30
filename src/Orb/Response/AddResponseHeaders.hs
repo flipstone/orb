@@ -1,15 +1,17 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
+
 module Orb.Response.AddResponseHeaders
   ( addResponseHeaders
+  , AddResponseHeaderBranches
   ) where
-  
+
 import GHC.TypeLits (KnownNat)
 import Network.HTTP.Types qualified as HTTP
 import Shrubbery (type (@=))
@@ -36,9 +38,8 @@ addResponseHeaders =
 class AddResponseHeaderBranches allResponseCodes someResponseCodes where
   addResponseHeaderBranchBuilder ::
     S.TaggedBranchBuilder
-      someResponseCodes 
+      someResponseCodes
       (HTTP.ResponseHeaders -> S.TaggedUnion allResponseCodes)
-    
 
 instance AddResponseHeaderBranches allResponseCodes '[] where
   addResponseHeaderBranchBuilder =
@@ -53,7 +54,8 @@ instance
   ) =>
   AddResponseHeaderBranches
     allResponseCodes
-    (code @= (returnType, HTTP.ResponseHeaders) : someResponseCodes) where
+    (code @= (returnType, HTTP.ResponseHeaders) : someResponseCodes)
+  where
   addResponseHeaderBranchBuilder =
     S.taggedBranch
       @code
@@ -68,5 +70,3 @@ addHeaders (response, existingHeaders) newHeaders =
   -- newHeaders in put on the front here to avoid rebuilding the linked-list spine
   -- of existingHeaders, which we generally assume will be longer than newHeaders
   (response, newHeaders <> existingHeaders)
-
-

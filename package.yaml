@@ -4,7 +4,7 @@ github:              "flipstone/orb"
 license:             MIT
 author:              "Flipstone Technology Partners, Inc"
 maintainer:          "development@flipstone.com"
-copyright:          "2025 Flipstone Technology Partners, Inc"
+copyright:           "2025 Flipstone Technology Partners, Inc"
 
 language: Haskell2010
 
