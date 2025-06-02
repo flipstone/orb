@@ -23,7 +23,7 @@ to be returned for Orb to encode as the response body. This function adds the
 headers without respect to which response body type or status code is tagged on
 the response.
 
-@since 0.1.1
+@since 0.1.2
 -}
 addResponseHeaders ::
   ( AddResponseHeaderBranches responseCodes responseCodes
