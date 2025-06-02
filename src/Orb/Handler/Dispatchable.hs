@@ -12,10 +12,11 @@ module Orb.Handler.Dispatchable
   ( Dispatchable (..)
   ) where
 
+import Control.Exception.Safe qualified as Safe
+import Control.Monad.IO.Class qualified as MIO
 import GHC.TypeLits (KnownNat)
 import Network.Wai qualified as Wai
 import Shrubbery qualified as S
-import UnliftIO qualified
 
 import Orb.Handler.Handler qualified as Handler
 import Orb.HasLogger qualified as HasLogger
@@ -30,9 +31,10 @@ instance
   ( HasLogger.HasLogger m
   , HasRequest.HasRequest m
   , HasRespond.HasRespond m
-  , UnliftIO.MonadUnliftIO m
+  , MIO.MonadIO m
   , Handler.HasHandler route
   , Handler.HandlerMonad route ~ m
+  , Safe.MonadCatch m
   ) =>
   Dispatchable m route
   where

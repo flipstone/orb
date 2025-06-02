@@ -20,6 +20,8 @@ module Orb.Handler.Handler
   )
 where
 
+import Control.Exception.Safe qualified as Safe
+import Control.Monad.IO.Class qualified as MIO
 import Data.ByteString.Lazy qualified as LBS
 import Data.Kind qualified as Kind
 import Data.Maybe (maybeToList)
@@ -29,7 +31,6 @@ import Fleece.Core qualified as FC
 import Network.Wai qualified as Wai
 import Network.Wai.Parse qualified as Wai
 import Shrubbery qualified as S
-import UnliftIO qualified
 
 import Orb.Handler.Form (Form, getForm)
 import Orb.Handler.PermissionAction qualified as PA
@@ -107,8 +108,9 @@ runHandler ::
   , HasLogger.HasLogger m
   , HasRequest.HasRequest m
   , HasRespond.HasRespond m
-  , UnliftIO.MonadUnliftIO m
+  , MIO.MonadIO m
   , HandlerMonad route ~ m
+  , Safe.MonadCatch m
   ) =>
   Handler route ->
   route ->
@@ -153,16 +155,17 @@ runPermissionAction handler route body = do
     Right permissionResult -> handleRequest handler route body permissionResult
 
 emptyRequestBodyHandler ::
-  ( HasLogger.HasLogger m
+  ( MIO.MonadIO m
+  , Safe.MonadCatch m
+  , HasLogger.HasLogger m
   , HasRespond.HasRespond m
   , Response.Has500Response tags
-  , UnliftIO.MonadUnliftIO m
   ) =>
   Response.ResponseBodies tags ->
   m (S.TaggedUnion tags) ->
   m Wai.ResponseReceived
 emptyRequestBodyHandler bodies action = do
-  errOrResponse <- UnliftIO.tryAny action
+  errOrResponse <- Safe.tryAny action
   response <-
     case errOrResponse of
       Right response -> pure response
@@ -189,7 +192,8 @@ requestFormDataHandler ::
   , HasLogger.HasLogger m
   , HasRequest.HasRequest m
   , HasRespond.HasRespond m
-  , UnliftIO.MonadUnliftIO m
+  , MIO.MonadIO m
+  , Safe.MonadCatch m
   ) =>
   (Form -> Either err request) ->
   Response.ResponseBodies tags ->
@@ -199,8 +203,8 @@ requestFormDataHandler requestDecoder bodies action =
   emptyRequestBodyHandler bodies $ do
     req <- HasRequest.request
     errOrFormFields <-
-      UnliftIO.liftIO
-        . UnliftIO.try
+      MIO.liftIO
+        . Safe.try
         $ Wai.parseRequestBodyEx
           Wai.defaultParseRequestBodyOptions
           Wai.lbsBackEnd
@@ -224,7 +228,8 @@ requestSchemaHandler ::
   , HasLogger.HasLogger m
   , HasRequest.HasRequest m
   , HasRespond.HasRespond m
-  , UnliftIO.MonadUnliftIO m
+  , MIO.MonadIO m
+  , Safe.MonadCatch m
   ) =>
   (forall schema. FC.Fleece schema => schema request) ->
   Response.ResponseBodies tags ->
@@ -233,7 +238,7 @@ requestSchemaHandler ::
 requestSchemaHandler schema bodies action =
   emptyRequestBodyHandler bodies $ do
     req <- HasRequest.request
-    body <- UnliftIO.liftIO $ Wai.consumeRequestBodyStrict req
+    body <- MIO.liftIO $ Wai.consumeRequestBodyStrict req
     case FA.decode schema body of
       Left err ->
         Response.return422 . Response.UnprocessableContentMessage $ T.pack err
@@ -246,7 +251,8 @@ requestBodyHandler ::
   , HasLogger.HasLogger m
   , HasRequest.HasRequest m
   , HasRespond.HasRespond m
-  , UnliftIO.MonadUnliftIO m
+  , MIO.MonadIO m
+  , Safe.MonadCatch m
   ) =>
   (LBS.ByteString -> Either err request) ->
   Response.ResponseBodies tags ->
@@ -255,7 +261,7 @@ requestBodyHandler ::
 requestBodyHandler requestDecoder bodies action =
   emptyRequestBodyHandler bodies $ do
     req <- HasRequest.request
-    body <- UnliftIO.liftIO $ Wai.consumeRequestBodyStrict req
+    body <- MIO.liftIO $ Wai.consumeRequestBodyStrict req
     case requestDecoder body of
       Left err -> Response.return422 err
       Right request -> action request

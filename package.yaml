@@ -37,9 +37,9 @@ dependencies:
   - http-types
   - json-fleece-aeson
   - json-fleece-core
+  - safe-exceptions
   - shrubbery
   - text
-  - unliftio
   - wai
   - wai-extra
 
