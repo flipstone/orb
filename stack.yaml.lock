@@ -5,6 +5,19 @@
 
 packages:
 - completed:
+    name: beeline-routing
+    pantry-tree:
+      sha256: 4e3af43612d5feacce7c28fa7093c76358d257cf2ce9c5e0321eb6d9888ef195
+      size: 1174
+    sha256: 2e269a7bf5912cfb9bd94fbdcce00322d9e1d872a2e8c7000d6e1adc72833d25
+    size: 24830
+    subdir: beeline-routing
+    url: https://github.com/flipstone/beeline/archive/319bc02bcdaddcc7f185c74e32c76c5157d51c92.tar.gz
+    version: 0.2.4.1
+  original:
+    subdir: beeline-routing
+    url: https://github.com/flipstone/beeline/archive/319bc02bcdaddcc7f185c74e32c76c5157d51c92.tar.gz
+- completed:
     name: json-fleece-aeson
     pantry-tree:
       sha256: 14fc55cbfef5a6751d7168dec038545d05f22e54e28fa310b22b61fad4cfd424
