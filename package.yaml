@@ -1,5 +1,5 @@
 name:                orb
-version:             0.1.2
+version:             0.1.3
 github:              "flipstone/orb"
 license:             MIT
 author:              "Flipstone Technology Partners, Inc"
@@ -43,6 +43,7 @@ dependencies:
   - text
   - wai
   - wai-extra
+  - warp
 
 library:
   source-dirs: src
