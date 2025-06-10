@@ -88,3 +88,9 @@ tests:
       - -Wall
       - -Werror
       - -O2
+    dependencies:
+      - beeline-routing
+      - hedgehog
+      - orb
+      - tasty
+      - tasty-hedgehog

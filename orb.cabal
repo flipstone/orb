@@ -92,11 +92,15 @@ test-suite orb-test
     , bytestring
     , case-insensitive
     , containers
+    , hedgehog
     , http-types
     , json-fleece-aeson
     , json-fleece-core
+    , orb
     , safe-exceptions
     , shrubbery
+    , tasty
+    , tasty-hedgehog
     , text
     , wai
     , wai-extra
