@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -11,14 +12,20 @@ module Main
 
 import Beeline.Routing ((/-), (/:))
 import Beeline.Routing qualified as R
+import Control.Monad.IO.Class qualified as MIO
+import Control.Monad.Reader qualified as Reader
 import Data.Aeson.Encode.Pretty qualified as AesonPretty
 import Data.ByteString.Char8 as BS8
 import Data.ByteString.Lazy as LBS
 import Data.FileEmbed qualified as FileEmbed
+import Data.IORef qualified as IORef
 import Data.OpenApi qualified as OpenApi
 import Data.Void qualified as Void
 import Hedgehog ((===))
 import Hedgehog qualified as HH
+import Network.HTTP.Types qualified as HTTP
+import Network.Wai qualified as Wai
+import Network.Wai.Internal qualified as WaiInternal
 import Shrubbery qualified as S
 import Test.Tasty qualified as Tasty
 import Test.Tasty.Hedgehog qualified as TastyHH
@@ -40,7 +47,40 @@ testGroup =
     [ TastyHH.testProperty "can generate a requested open api json" prop_openApi
     , TastyHH.testProperty "cannot generate an unknown open api" prop_openApiUnknownLabel
     , TastyHH.testProperty "can generate a requested open api json for a subset of routes" prop_openApiSubset
+    , TastyHH.testProperty "can serve swagger ui files" prop_serveSwaggerUIFiles
     ]
+
+newtype TestDispatchM a
+  = TestDispatchM (Reader.ReaderT (IORef.IORef (Maybe Wai.Response)) IO a)
+  deriving
+    ( Functor
+    , Applicative
+    , Monad
+    , MIO.MonadIO
+    )
+
+instance Orb.HasRespond TestDispatchM where
+  respond =
+    TestDispatchM $ do
+      responseRef <- Reader.ask
+      pure $ \response -> do
+        IORef.writeIORef responseRef (Just response)
+        pure WaiInternal.ResponseReceived
+
+runTestDispatchM :: TestDispatchM a -> IO (Maybe Wai.Response)
+runTestDispatchM (TestDispatchM reader) = do
+  responseRef <- IORef.newIORef Nothing
+  _responseReceived <- Reader.runReaderT reader responseRef
+  IORef.readIORef responseRef
+
+prop_serveSwaggerUIFiles :: HH.Property
+prop_serveSwaggerUIFiles = HH.withTests 1 . HH.property $ do
+  maybeResponse <-
+    HH.evalIO $
+      runTestDispatchM (Orb.dispatch (Orb.SwaggerUIRoute "index.html"))
+  case maybeResponse of
+    Nothing -> fail "No Response"
+    Just response -> Wai.responseStatus response === HTTP.status200
 
 prop_openApi :: HH.Property
 prop_openApi = HH.withTests 1 . HH.property $ do
