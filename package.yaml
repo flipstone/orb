@@ -13,6 +13,22 @@ default-extensions:
 
 extra-source-files:
   - README.md
+  - src/Orb/SwaggerUI/swagger-ui-index.html
+  - src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/LICENSE
+  - src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/NOTICE
+  - src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/favicon-16x16.png
+  - src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/favicon-32x32.png
+  - src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/index.css
+  - src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/index.html
+  - src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/oauth2-redirect.html
+  - src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/swagger-initializer.js
+  - src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/swagger-ui-bundle.js
+  - src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/swagger-ui-es-bundle-core.js
+  - src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/swagger-ui-es-bundle.js
+  - src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/swagger-ui-standalone-preset.js
+  - src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/swagger-ui.css
+  - src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/swagger-ui.js
+  
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
@@ -37,12 +53,15 @@ dependencies:
   - bytestring
   - case-insensitive
   - containers
+  - file-embed
+  - filepath
   - hashable
   - http-media
   - http-types
   - insert-ordered-containers
   - json-fleece-aeson
   - json-fleece-core
+  - mtl
   - openapi3
   - optparse-applicative
   - safe-exceptions

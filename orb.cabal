@@ -17,6 +17,21 @@ license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
     README.md
+    src/Orb/SwaggerUI/swagger-ui-index.html
+    src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/LICENSE
+    src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/NOTICE
+    src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/favicon-16x16.png
+    src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/favicon-32x32.png
+    src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/index.css
+    src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/index.html
+    src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/oauth2-redirect.html
+    src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/swagger-initializer.js
+    src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/swagger-ui-bundle.js
+    src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/swagger-ui-es-bundle-core.js
+    src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/swagger-ui-es-bundle.js
+    src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/swagger-ui-standalone-preset.js
+    src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/swagger-ui.css
+    src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/swagger-ui.js
 
 source-repository head
   type: git
@@ -51,6 +66,7 @@ library
       Orb.Response.Response
       Orb.Response.Schemas
       Orb.Response.StatusCodes
+      Orb.SwaggerUI
       Orb.Wai
       Paths_orb
   hs-source-dirs:
@@ -65,12 +81,15 @@ library
     , bytestring
     , case-insensitive
     , containers
+    , file-embed
+    , filepath
     , hashable
     , http-media
     , http-types
     , insert-ordered-containers
     , json-fleece-aeson
     , json-fleece-core
+    , mtl
     , openapi3
     , optparse-applicative
     , safe-exceptions
@@ -92,6 +111,9 @@ test-suite orb-test
   type: exitcode-stdio-1.0
   main-is: Main.hs
   other-modules:
+      Fixtures
+      OpenApi
+      SwaggerUI
       Paths_orb
   hs-source-dirs:
       test
@@ -107,6 +129,7 @@ test-suite orb-test
     , case-insensitive
     , containers
     , file-embed
+    , filepath
     , hashable
     , hedgehog
     , http-media
@@ -114,6 +137,7 @@ test-suite orb-test
     , insert-ordered-containers
     , json-fleece-aeson
     , json-fleece-core
+    , mtl
     , openapi3
     , optparse-applicative
     , orb

@@ -5,6 +5,7 @@
 
 module Orb.OpenApi
   ( mkOpenApi
+  , mkAllOpenApis
   , openApiLabels
   , OpenApiProvider (provideOpenApi)
   , OpenApiRouter
@@ -57,6 +58,19 @@ instance OpenApiProvider R.RouteRecognizer where
 openApiLabels :: OpenApiRouter a -> [String]
 openApiLabels (OpenApiRouter builders) =
   Map.keys (labeledBuilders builders)
+
+{- |
+  Returns all the 'OpenApi.OpenApi' descriptions that have been labeled in
+  the specified router. If any of them return an error, it will be returned.
+-}
+mkAllOpenApis :: OpenApiRouter a -> Either String (Map.Map String OpenApi.OpenApi)
+mkAllOpenApis router =
+  let
+    mkLabeledApi label = do
+      api <- mkOpenApi router label
+      pure (label, api)
+  in
+    Map.fromList <$> traverse mkLabeledApi (openApiLabels router)
 
 {- |
   Returns the 'OpenApi.OpenApi' descriptions for the api section that was
