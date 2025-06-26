@@ -146,7 +146,7 @@ dispatchSwaggerUIRoute (SwaggerUIRoute errOrOpenApis apiLabel apiPath) =
       Response.respondWith $
         Wai.responseLBS
           HTTP.status500
-          [("Content-Type", "text/plain")]
+          [("Content-Type", Response.textPlain)]
           (LBS8.pack err)
     Right allOpenApis ->
       case Map.lookup (T.unpack apiLabel) allOpenApis of
@@ -176,7 +176,7 @@ handleIndexRedirect = do
     Wai.responseLBS
       HTTP.status308
       [ ("Location", BS8.snoc (Wai.rawPathInfo request) '/')
-      , ("Content-Type", "text/plain")
+      , ("Content-Type", Response.textPlain)
       ]
       ("Please use a trailing /" :: LBS.ByteString)
 
@@ -185,7 +185,7 @@ handleIndex =
   Response.respondWith $
     Wai.responseLBS
       HTTP.status200
-      [("Content-Type", "text/html")]
+      [("Content-Type", Response.applicationJson)]
       (LBS.fromStrict swaggerUIIndex)
 
 handleOpenApi ::
@@ -196,7 +196,7 @@ handleOpenApi openApi =
   Response.respondWith $
     Wai.responseLBS
       HTTP.status200
-      [("Content-Type", "application/json")]
+      [("Content-Type", Response.applicationJson)]
       (AesonPretty.encodePretty openApi)
 
 handleSwaggerUIResource ::
@@ -227,17 +227,17 @@ handleSwaggerUIResource (SwaggerUIResource path) =
 contentTypeForFile :: FilePath -> BS.ByteString
 contentTypeForFile path =
   case FilePath.takeExtension path of
-    ".js" -> "text/javascript"
-    ".css" -> "text/css"
-    ".png" -> "image/png"
-    ".html" -> "text/html"
-    _ -> "application/octet-stream"
+    ".js" -> Response.textJavascript
+    ".css" -> Response.textCss
+    ".png" -> Response.imagePng
+    ".html" -> Response.textHtml
+    _ -> Response.applicationOctetStream
 
 notFoundResponse :: Wai.Response
 notFoundResponse =
   Wai.responseLBS
     HTTP.status404
-    [("Content-Type", "text/plain")]
+    [("Content-Type", Response.textPlain)]
     ("SwaggerUI: File Not Found" :: LBS.ByteString)
 
 swaggerUIIndex :: BS.ByteString

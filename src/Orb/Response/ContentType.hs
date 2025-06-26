@@ -26,6 +26,7 @@ module Orb.Response.ContentType
   , fontWoff2
   , imageGif
   , imageJpeg
+  , imagePng
   , imageSvgXml
   , imageTiff
   , imageWebp
@@ -203,6 +204,10 @@ imageGif = BS8.pack "image/gif"
 -}
 imageJpeg :: ContentType
 imageJpeg = BS8.pack "image/jpeg"
+
+-- | A 'BS.ByteString' representation of the /image\/png/ MIME type (.png images).
+imagePng :: ContentType
+imagePng = BS8.pack "image/png"
 
 {- | A 'BS.ByteString' representation of the /image\/svg+xml/ MIME type (.svg
 images).
