@@ -185,7 +185,7 @@ handleIndex =
   Response.respondWith $
     Wai.responseLBS
       HTTP.status200
-      [("Content-Type", Response.applicationJson)]
+      [("Content-Type", Response.textHtml)]
       (LBS.fromStrict swaggerUIIndex)
 
 handleOpenApi ::
