@@ -29,6 +29,7 @@ extra-deps:
   commit: 319bc02bcdaddcc7f185c74e32c76c5157d51c92
   subdirs:
     - beeline-routing
+    - beeline-http-client
 # Fleece
 - github: flipstone/json-fleece
   commit: 83e675bcb56e86955d0472021ec731e2ebff1ef4

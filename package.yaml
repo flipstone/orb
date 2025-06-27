@@ -50,6 +50,7 @@ dependencies:
   - aeson
   - aeson-pretty
   - beeline-routing
+  - beeline-http-client
   - bytestring
   - case-insensitive
   - containers
