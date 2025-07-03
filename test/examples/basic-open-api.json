@@ -24,6 +24,19 @@
                 ],
                 "title": "SuccessMessage",
                 "type": "object"
+            },
+            "WrappedInteger": {
+                "nullable": true,
+                "properties": {
+                    "field": {
+                        "type": "integer"
+                    }
+                },
+                "required": [
+                    "field"
+                ],
+                "title": "WrappedInteger",
+                "type": "object"
             }
         }
     },
@@ -33,6 +46,38 @@
     },
     "openapi": "3.0.0",
     "paths": {
+        "/nullable-ref": {
+            "get": {
+                "operationId": "NullableRefHandler",
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "nullable": true,
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/WrappedInteger"
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/InternalServerError"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        },
         "/test/route1": {
             "get": {
                 "operationId": "testRoute1",
