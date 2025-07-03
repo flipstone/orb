@@ -1,6 +1,17 @@
 {
     "components": {
         "schemas": {
+            "IntOrObject": {
+                "oneOf": [
+                    {
+                        "type": "integer"
+                    },
+                    {
+                        "$ref": "#/components/schemas/RandomObject"
+                    }
+                ],
+                "title": "IntOrObject"
+            },
             "InternalServerError": {
                 "properties": {
                     "internal_server_error": {
@@ -11,6 +22,22 @@
                     "internal_server_error"
                 ],
                 "title": "InternalServerError",
+                "type": "object"
+            },
+            "RandomObject": {
+                "properties": {
+                    "bool": {
+                        "type": "boolean"
+                    },
+                    "text": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "bool",
+                    "text"
+                ],
+                "title": "RandomObject",
                 "type": "object"
             },
             "SuccessMessage": {
@@ -47,6 +74,16 @@
                         },
                         "description": ""
                     },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/IntOrObject"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
                     "500": {
                         "content": {
                             "application/json": {
@@ -69,6 +106,16 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/SuccessMessage"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/IntOrObject"
                                 }
                             }
                         },

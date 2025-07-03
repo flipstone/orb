@@ -14,7 +14,10 @@ module Fixtures
 
 import Beeline.Routing ((/-), (/:))
 import Beeline.Routing qualified as R
+import Data.Text qualified as T
 import Data.Void qualified as Void
+import Fleece.Core ((#+))
+import Fleece.Core qualified as FC
 import Shrubbery qualified as S
 
 import Orb qualified
@@ -47,6 +50,7 @@ instance Orb.HasHandler TestRoute2 where
 
 type TestResponses =
   [ Orb.Response200 Orb.SuccessMessage
+  , Orb.Response400 (Either Int RandomObject)
   , Orb.Response500 Orb.InternalServerError
   ]
 
@@ -65,6 +69,7 @@ mkTestHandler handlerId =
     , Orb.handlerResponseBodies =
         Orb.responseBodies
           . Orb.addResponseSchema200 Orb.successMessageSchema
+          . Orb.addResponseSchema400 intOrObjectSchema
           . Orb.addResponseSchema500 Orb.internalServerErrorSchema
           $ Orb.noResponseBodies
     , Orb.mkPermissionAction =
@@ -73,6 +78,22 @@ mkTestHandler handlerId =
         \_route Orb.NoRequestBody () ->
           Orb.return200 (Orb.SuccessMessage "Hi")
     }
+
+intOrObjectSchema :: FC.Fleece schema => schema (Either Int RandomObject)
+intOrObjectSchema =
+  FC.eitherOfNamed "IntOrObject" FC.int randomObjectSchema
+
+data RandomObject = RandomObject
+  { randomBool :: Bool
+  , randomText :: T.Text
+  }
+
+randomObjectSchema :: FC.Fleece schema => schema RandomObject
+randomObjectSchema =
+  FC.object $
+    FC.constructor RandomObject
+      #+ FC.required "bool" randomBool FC.boolean
+      #+ FC.required "text" randomText FC.text
 
 data NoPermissions
   = NoPermissions

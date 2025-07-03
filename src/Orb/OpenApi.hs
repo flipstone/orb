@@ -802,20 +802,37 @@ instance FC.Fleece FleeceOpenApi where
           , schemaComponents = Map.empty
           }
 
-  unionNamed name (UnionMembers _members) =
-    FleeceOpenApi
-      . Left
-      $ "Fleece unions are not currently implemented for OpenApi: " <> FC.nameToString name
+  unionNamed name (UnionMembers errOrMembers) =
+    FleeceOpenApi $ do
+      let
+        key = Just $ fleeceNameToOpenApiKey name
 
-  unionMemberWithIndex _idx (FleeceOpenApi _schemaInfo) =
-    UnionMembers
-      . Left
-      $ "Fleece unions are not currently implemented for OpenApi"
+      members <- errOrMembers
+      components <- collectComponents members
 
-  unionCombine (UnionMembers _left) (UnionMembers _right) =
-    UnionMembers
-      . Left
-      $ "Fleece unions are not currently implemented for OpenApi"
+      pure $
+        SchemaInfo
+          { fleeceName = name
+          , schemaIsPrimitive = False
+          , openApiKey = key
+          , openApiSchema =
+              mempty
+                { OpenApi._schemaType = Nothing
+                , OpenApi._schemaDiscriminator = Nothing
+                , OpenApi._schemaOneOf =
+                    Just $ fmap mkSchemaRef members
+                , OpenApi._schemaTitle = key
+                }
+          , schemaComponents = components
+          }
+
+  unionMemberWithIndex _idx (FleeceOpenApi errOrSchemaInfo) =
+    UnionMembers $ do
+      schemaInfo <- errOrSchemaInfo
+      pure [rewriteSchemaInfo schemaInfo]
+
+  unionCombine (UnionMembers left) (UnionMembers right) =
+    UnionMembers $ liftA2 (<>) left right
 
   taggedUnionNamed name tagPropertyString (TaggedUnionMembers mkMembers) =
     FleeceOpenApi $ do
