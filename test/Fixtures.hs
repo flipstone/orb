@@ -15,17 +15,60 @@ module Fixtures
 import Beeline.Routing ((/-), (/:))
 import Beeline.Routing qualified as R
 import Data.Void qualified as Void
+import Fleece.Core ((#+))
+import Fleece.Core qualified as FC
 import Shrubbery qualified as S
 
 import Orb qualified
 
-basicOpenApiRouter :: Orb.OpenApiProvider r => r (S.Union [TestRoute1, TestRoute2])
+basicOpenApiRouter :: Orb.OpenApiProvider r => r (S.Union [TestRoute1, TestRoute2, NullableRef])
 basicOpenApiRouter =
   Orb.provideOpenApi "basic-open-api"
     . R.routeList
     $ Orb.provideOpenApi "just-route-1" (Orb.get (R.make TestRoute1 /- "test/route1"))
       /: Orb.get (R.make TestRoute2 /- "test/route2")
+      /: Orb.provideOpenApi "nullable-ref" (Orb.get (R.make NullableRef /- "nullable-ref"))
       /: R.emptyRoutes
+
+-- Nullable Ref
+
+data NullableRef = NullableRef
+
+instance Orb.HasHandler NullableRef where
+  type HandlerRequestBody NullableRef = Orb.NoRequestBody
+  type HandlerResponses NullableRef = NullableRefResponses
+  type HandlerPermissionAction NullableRef = NoPermissions
+  type HandlerMonad NullableRef = IO
+  routeHandler =
+    Orb.Handler
+      { Orb.handlerId = "NullableRefHandler"
+      , Orb.requestBody = Orb.EmptyRequestBody
+      , Orb.handlerResponseBodies =
+          Orb.responseBodies
+            . Orb.addResponseSchema200 (FC.nullable nullableRefResponseSchema)
+            . Orb.addResponseSchema500 Orb.internalServerErrorSchema
+            $ Orb.noResponseBodies
+      , Orb.mkPermissionAction =
+          \_route _request -> NoPermissions
+      , Orb.handleRequest =
+          \_route Orb.NoRequestBody () ->
+            Orb.return200 (Right $ NullableRefResponse 42)
+      }
+
+type NullableRefResponses =
+  [ Orb.Response200 (Either FC.Null NullableRefResponse)
+  , Orb.Response500 Orb.InternalServerError
+  ]
+
+newtype NullableRefResponse = NullableRefResponse {unNullableRefResponse :: Int}
+
+nullableRefResponseSchema :: FC.Fleece schema => schema NullableRefResponse
+nullableRefResponseSchema =
+  FC.objectNamed "WrappedInteger" $
+    FC.constructor NullableRefResponse
+      #+ FC.required "field" unNullableRefResponse FC.int
+
+-- Test Route 1
 
 data TestRoute1 = TestRoute1
 
