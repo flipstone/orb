@@ -124,4 +124,5 @@ tests:
       - hedgehog
       - orb
       - tasty
+      - tasty-golden
       - tasty-hedgehog

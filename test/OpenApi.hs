@@ -5,13 +5,12 @@ module OpenApi
   ) where
 
 import Data.Aeson.Encode.Pretty qualified as AesonPretty
-import Data.ByteString.Char8 as BS8
 import Data.ByteString.Lazy as LBS
-import Data.FileEmbed qualified as FileEmbed
 import Data.OpenApi qualified as OpenApi
 import Hedgehog ((===))
 import Hedgehog qualified as HH
 import Test.Tasty qualified as Tasty
+import Test.Tasty.Golden (goldenVsFile)
 import Test.Tasty.Hedgehog qualified as TastyHH
 
 import Fixtures qualified
@@ -21,15 +20,18 @@ testGroup :: Tasty.TestTree
 testGroup =
   Tasty.testGroup
     "OpenApi"
-    [ TastyHH.testProperty "can generate a requested open api json" prop_openApi
+    [ test_openApi
     , TastyHH.testProperty "cannot generate an unknown open api" prop_openApiUnknownLabel
-    , TastyHH.testProperty "can generate a requested open api json for a subset of routes" prop_openApiSubset
+    , test_openApiSubset
     ]
 
-prop_openApi :: HH.Property
-prop_openApi = HH.withTests 1 . HH.property $ do
-  openApi <- HH.evalEither (Orb.mkOpenApi Fixtures.basicOpenApiRouter "basic-open-api")
-  assertEqualOpenApi openApi $(FileEmbed.embedFile "test/examples/basic-open-api.json")
+test_openApi :: Tasty.TestTree
+test_openApi =
+  mkGoldenTest
+    "can generate a requested open api json"
+    "test/examples/basic-open-api.json"
+    "test/examples/basic-open-api-actual.json"
+    $ Orb.mkOpenApi Fixtures.basicOpenApiRouter "basic-open-api"
 
 prop_openApiUnknownLabel :: HH.Property
 prop_openApiUnknownLabel = HH.withTests 1 . HH.property $ do
@@ -37,15 +39,23 @@ prop_openApiUnknownLabel = HH.withTests 1 . HH.property $ do
     Right _ -> fail "Should not have returned an OpenApi for an unknown label"
     Left msg -> msg === "No OpenApi definition found with label unknown-open-api."
 
-prop_openApiSubset :: HH.Property
-prop_openApiSubset = HH.withTests 1 . HH.property $ do
-  openApi <- HH.evalEither (Orb.mkOpenApi Fixtures.basicOpenApiRouter "just-route-1")
-  assertEqualOpenApi openApi $(FileEmbed.embedFile "test/examples/just-route-1.json")
+test_openApiSubset :: Tasty.TestTree
+test_openApiSubset =
+  mkGoldenTest
+    "can generate a requested open api json for a subset of routes"
+    "test/examples/just-route-1.json"
+    "test/examples/just-route-1-actual.json"
+    $ Orb.mkOpenApi Fixtures.basicOpenApiRouter "just-route-1"
 
-assertEqualOpenApi :: HH.MonadTest m => OpenApi.OpenApi -> BS8.ByteString -> m ()
-assertEqualOpenApi openApi expectedBytes = do
-  -- Splitting on lines here both produces a more useful diff and allows for small
-  -- meaningless differences such as newline at end of file between the encoded
-  -- bytes and the expected bytes read from the sample file
-  BS8.lines (LBS.toStrict (AesonPretty.encodePretty openApi))
-    === BS8.lines expectedBytes
+mkGoldenTest ::
+  Tasty.TestName ->
+  FilePath ->
+  FilePath ->
+  Either String OpenApi.OpenApi ->
+  Tasty.TestTree
+mkGoldenTest testName goldenPath actualPath eopenApi = do
+  goldenVsFile testName goldenPath actualPath $ do
+    openApi <- either fail pure eopenApi
+    -- Aeson Pretty doesn't emit a newline at the end, but some text editors
+    -- like to add it. So we explicitly add it.
+    LBS.writeFile actualPath (AesonPretty.encodePretty openApi <> LBS.pack [10])

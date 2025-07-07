@@ -145,6 +145,7 @@ test-suite orb-test
     , semialign
     , shrubbery
     , tasty
+    , tasty-golden
     , tasty-hedgehog
     , text
     , these
