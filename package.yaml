@@ -1,5 +1,5 @@
 name:                orb
-version:             0.1.4
+version:             0.1.5
 github:              "flipstone/orb"
 license:             MIT
 author:              "Flipstone Technology Partners, Inc"
@@ -124,4 +124,5 @@ tests:
       - hedgehog
       - orb
       - tasty
+      - tasty-golden
       - tasty-hedgehog

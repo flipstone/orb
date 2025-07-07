@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           orb
-version:        0.1.4
+version:        0.1.5
 description:    Please see the README on GitHub at <https://github.com/flipstone/orb#readme>
 homepage:       https://github.com/flipstone/orb#readme
 bug-reports:    https://github.com/flipstone/orb/issues
@@ -145,6 +145,7 @@ test-suite orb-test
     , semialign
     , shrubbery
     , tasty
+    , tasty-golden
     , tasty-hedgehog
     , text
     , these

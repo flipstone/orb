@@ -591,6 +591,7 @@ data SchemaInfo = SchemaInfo
   { fleeceName :: FC.Name
   , schemaIsPrimitive :: Bool
   , openApiKey :: Maybe T.Text
+  , openApiNullable :: Bool
   , openApiSchema :: OpenApi.Schema
   , schemaComponents :: Map.Map T.Text SchemaInfo
   }
@@ -630,7 +631,17 @@ mkSchemaRef ::
 mkSchemaRef schema =
   case openApiKey schema of
     Just schemaKey ->
-      OpenApi.Ref . OpenApi.Reference $ schemaKey
+      let
+        ref = OpenApi.Ref . OpenApi.Reference $ schemaKey
+      in
+        if openApiNullable schema
+          then
+            OpenApi.Inline $
+              mempty
+                { OpenApi._schemaOneOf = Just [ref]
+                , OpenApi._schemaNullable = Just True
+                }
+          else ref
     Nothing ->
       OpenApi.Inline . openApiSchema $ schema
 
@@ -643,6 +654,7 @@ mkPrimitiveSchema name openApiType =
     { fleeceName = FC.unqualifiedName name
     , schemaIsPrimitive = True
     , openApiKey = Nothing
+    , openApiNullable = False
     , openApiSchema =
         mempty
           { OpenApi._schemaType = Just openApiType
@@ -703,6 +715,7 @@ instance FC.Fleece FleeceOpenApi where
           { fleeceName = FC.annotateName (fleeceName itemSchemaInfo) "array"
           , schemaIsPrimitive = False
           , openApiKey = Nothing
+          , openApiNullable = False
           , openApiSchema =
               mempty
                 { OpenApi._schemaType = Just OpenApi.OpenApiArray
@@ -714,18 +727,17 @@ instance FC.Fleece FleeceOpenApi where
   nullable (FleeceOpenApi errOrSchemaInfo) =
     FleeceOpenApi $ do
       schemaInfo <- fmap rewriteSchemaInfo errOrSchemaInfo
-      components <- collectComponents [schemaInfo]
 
+      let
+        name = fleeceName schemaInfo
       pure $
         SchemaInfo
-          { fleeceName = FC.annotateName (fleeceName schemaInfo) "nullable"
+          { fleeceName = name
           , schemaIsPrimitive = schemaIsPrimitive schemaInfo
-          , openApiKey = Nothing
-          , openApiSchema =
-              (openApiSchema schemaInfo)
-                { OpenApi._schemaNullable = Just True
-                }
-          , schemaComponents = components
+          , openApiKey = Just $ fleeceNameToOpenApiKey name
+          , openApiNullable = True
+          , openApiSchema = openApiSchema schemaInfo
+          , schemaComponents = mempty
           }
 
   required name _accessor (FleeceOpenApi errOrSchemaInfo) =
@@ -777,6 +789,7 @@ instance FC.Fleece FleeceOpenApi where
             schemaInfo
               { fleeceName = name
               , openApiKey = Just . fleeceNameToOpenApiKey $ name
+              , openApiNullable = False
               , schemaComponents = components
               }
         else pure schemaInfo
@@ -794,6 +807,7 @@ instance FC.Fleece FleeceOpenApi where
           { fleeceName = name
           , schemaIsPrimitive = False
           , openApiKey = Just . fleeceNameToOpenApiKey $ name
+          , openApiNullable = False
           , openApiSchema =
               mempty
                 { OpenApi._schemaType = Just OpenApi.OpenApiString
@@ -871,6 +885,7 @@ instance FC.Fleece FleeceOpenApi where
           { fleeceName = name
           , schemaIsPrimitive = False
           , openApiKey = key
+          , openApiNullable = False
           , openApiSchema =
               mempty
                 { OpenApi._schemaType = Nothing
@@ -933,6 +948,7 @@ mkObjectForFields name fieldsInReverse = do
       { fleeceName = name
       , schemaIsPrimitive = False
       , openApiKey = key
+      , openApiNullable = False
       , openApiSchema =
           mempty
             { OpenApi._schemaType = Just OpenApi.OpenApiObject
