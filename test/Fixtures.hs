@@ -27,7 +27,7 @@ basicOpenApiRouter =
     . R.routeList
     $ Orb.provideOpenApi "just-route-1" (Orb.get (R.make TestRoute1 /- "test/route1"))
       /: Orb.get (R.make TestRoute2 /- "test/route2")
-      /: Orb.provideOpenApi "nullable-ref" (Orb.get (R.make NullableRef /- "nullable-ref"))
+      /: Orb.get (R.make NullableRef /- "nullable-ref")
       /: R.emptyRoutes
 
 -- Nullable Ref
