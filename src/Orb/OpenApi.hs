@@ -736,10 +736,7 @@ instance FC.Fleece FleeceOpenApi where
           , schemaIsPrimitive = schemaIsPrimitive schemaInfo
           , openApiKey = Just $ fleeceNameToOpenApiKey name
           , openApiNullable = True
-          , openApiSchema =
-              (openApiSchema schemaInfo)
-                { OpenApi._schemaNullable = Just True
-                }
+          , openApiSchema = openApiSchema schemaInfo
           , schemaComponents = mempty
           }
 
