@@ -10,7 +10,7 @@ import Data.OpenApi qualified as OpenApi
 import Hedgehog ((===))
 import Hedgehog qualified as HH
 import Test.Tasty qualified as Tasty
-import Test.Tasty.Golden (goldenVsString)
+import Test.Tasty.Golden (goldenVsStringDiff)
 import Test.Tasty.Hedgehog qualified as TastyHH
 
 import Fixtures qualified
@@ -51,7 +51,9 @@ mkGoldenTest ::
   Either String OpenApi.OpenApi ->
   Tasty.TestTree
 mkGoldenTest testName goldenPath eopenApi = do
-  goldenVsString testName goldenPath $ do
+  -- Using VsStringDiff instead of VsString because the output for failing
+  -- tests is better
+  goldenVsStringDiff testName (\ref new -> ["diff", "-u", ref, new]) goldenPath $ do
     openApi <- either fail pure eopenApi
     -- Aeson Pretty doesn't emit a newline at the end, but some text editors
     -- like to add it. So we explicitly add it.
