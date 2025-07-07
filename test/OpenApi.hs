@@ -10,7 +10,7 @@ import Data.OpenApi qualified as OpenApi
 import Hedgehog ((===))
 import Hedgehog qualified as HH
 import Test.Tasty qualified as Tasty
-import Test.Tasty.Golden (goldenVsFile)
+import Test.Tasty.Golden (goldenVsString)
 import Test.Tasty.Hedgehog qualified as TastyHH
 
 import Fixtures qualified
@@ -30,7 +30,6 @@ test_openApi =
   mkGoldenTest
     "can generate a requested open api json"
     "test/examples/basic-open-api.json"
-    "test/examples/basic-open-api-actual.json"
     $ Orb.mkOpenApi Fixtures.basicOpenApiRouter "basic-open-api"
 
 prop_openApiUnknownLabel :: HH.Property
@@ -44,18 +43,16 @@ test_openApiSubset =
   mkGoldenTest
     "can generate a requested open api json for a subset of routes"
     "test/examples/just-route-1.json"
-    "test/examples/just-route-1-actual.json"
     $ Orb.mkOpenApi Fixtures.basicOpenApiRouter "just-route-1"
 
 mkGoldenTest ::
   Tasty.TestName ->
   FilePath ->
-  FilePath ->
   Either String OpenApi.OpenApi ->
   Tasty.TestTree
-mkGoldenTest testName goldenPath actualPath eopenApi = do
-  goldenVsFile testName goldenPath actualPath $ do
+mkGoldenTest testName goldenPath eopenApi = do
+  goldenVsString testName goldenPath $ do
     openApi <- either fail pure eopenApi
     -- Aeson Pretty doesn't emit a newline at the end, but some text editors
     -- like to add it. So we explicitly add it.
-    LBS.writeFile actualPath (AesonPretty.encodePretty openApi <> LBS.pack [10])
+    pure $ AesonPretty.encodePretty openApi <> LBS.pack [10]
