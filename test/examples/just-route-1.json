@@ -33,9 +33,9 @@
     },
     "openapi": "3.0.0",
     "paths": {
-        "/test/route1": {
+        "/test/simple_get": {
             "get": {
-                "operationId": "testRoute1",
+                "operationId": "simpleGet",
                 "responses": {
                     "200": {
                         "content": {

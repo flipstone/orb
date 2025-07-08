@@ -26,8 +26,9 @@ packages:
 extra-deps:
 # Beeline
 - github: flipstone/beeline
-  commit: 319bc02bcdaddcc7f185c74e32c76c5157d51c92
+  commit: 4fc0f2a84268ca2da0affbe3b28c5217baa7a788
   subdirs:
+    - beeline-params
     - beeline-routing
 # Fleece
 - github: flipstone/json-fleece

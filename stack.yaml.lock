@@ -5,18 +5,31 @@
 
 packages:
 - completed:
+    name: beeline-params
+    pantry-tree:
+      sha256: 1f664a1943ccc5f2d07dc2a63a5e4df19d3225d1c10d66050b73d87fdb0165e3
+      size: 635
+    sha256: d8b4cec37dceda5cf0b080aafae6d078adc89f8e4f0c347d9b55dc1a91aaf9f8
+    size: 33140
+    subdir: beeline-params
+    url: https://github.com/flipstone/beeline/archive/4fc0f2a84268ca2da0affbe3b28c5217baa7a788.tar.gz
+    version: 0.1.0.0
+  original:
+    subdir: beeline-params
+    url: https://github.com/flipstone/beeline/archive/4fc0f2a84268ca2da0affbe3b28c5217baa7a788.tar.gz
+- completed:
     name: beeline-routing
     pantry-tree:
-      sha256: 4e3af43612d5feacce7c28fa7093c76358d257cf2ce9c5e0321eb6d9888ef195
-      size: 1174
-    sha256: 2e269a7bf5912cfb9bd94fbdcce00322d9e1d872a2e8c7000d6e1adc72833d25
-    size: 24830
+      sha256: dbaa3c715f4f7235d75e34dd717c308b5c5e6fd21170fcea3583ab26a4d5e26e
+      size: 1119
+    sha256: d8b4cec37dceda5cf0b080aafae6d078adc89f8e4f0c347d9b55dc1a91aaf9f8
+    size: 33140
     subdir: beeline-routing
-    url: https://github.com/flipstone/beeline/archive/319bc02bcdaddcc7f185c74e32c76c5157d51c92.tar.gz
-    version: 0.2.4.1
+    url: https://github.com/flipstone/beeline/archive/4fc0f2a84268ca2da0affbe3b28c5217baa7a788.tar.gz
+    version: 0.3.0.0
   original:
     subdir: beeline-routing
-    url: https://github.com/flipstone/beeline/archive/319bc02bcdaddcc7f185c74e32c76c5157d51c92.tar.gz
+    url: https://github.com/flipstone/beeline/archive/4fc0f2a84268ca2da0affbe3b28c5217baa7a788.tar.gz
 - completed:
     name: json-fleece-aeson
     pantry-tree:

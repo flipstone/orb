@@ -77,7 +77,8 @@ library
       aeson
     , aeson-pretty
     , base >=4.7 && <5
-    , beeline-routing
+    , beeline-params ==0.1.*
+    , beeline-routing ==0.3.*
     , bytestring
     , case-insensitive
     , containers
@@ -112,8 +113,16 @@ test-suite orb-test
   main-is: Main.hs
   other-modules:
       Fixtures
+      Fixtures.BasicOpenApiRouter
+      Fixtures.GetWithHeaders
+      Fixtures.GetWithQuery
+      Fixtures.NoPermissions
+      Fixtures.NullableRef
+      Fixtures.SimpleGet
+      Handler
       OpenApi
       SwaggerUI
+      TestDispatchM
       Paths_orb
   hs-source-dirs:
       test
@@ -124,6 +133,7 @@ test-suite orb-test
       aeson
     , aeson-pretty
     , base >=4.7 && <5
+    , beeline-params ==0.1.*
     , beeline-routing
     , bytestring
     , case-insensitive
