@@ -13,16 +13,16 @@
                 "title": "InternalServerError",
                 "type": "object"
             },
-            "SuccessMessage": {
+            "WrappedInteger": {
                 "properties": {
-                    "success": {
-                        "type": "string"
+                    "field": {
+                        "type": "integer"
                     }
                 },
                 "required": [
-                    "success"
+                    "field"
                 ],
-                "title": "SuccessMessage",
+                "title": "WrappedInteger",
                 "type": "object"
             }
         }
@@ -33,42 +33,20 @@
     },
     "openapi": "3.0.0",
     "paths": {
-        "/test/route1": {
+        "/nullable-ref": {
             "get": {
-                "operationId": "testRoute1",
+                "operationId": "NullableRefHandler",
                 "responses": {
                     "200": {
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/SuccessMessage"
-                                }
-                            }
-                        },
-                        "description": ""
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/InternalServerError"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/test/route2": {
-            "get": {
-                "operationId": "testRoute2",
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SuccessMessage"
+                                    "nullable": true,
+                                    "oneOf": [
+                                        {
+                                            "$ref": "#/components/schemas/WrappedInteger"
+                                        }
+                                    ]
                                 }
                             }
                         },

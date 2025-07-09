@@ -23,6 +23,8 @@ testGroup =
     [ test_openApi
     , TastyHH.testProperty "cannot generate an unknown open api" prop_openApiUnknownLabel
     , test_openApiSubset
+    , test_nullableRefOpenApi
+    , test_unionOpenApi
     ]
 
 test_openApi :: Tasty.TestTree
@@ -44,6 +46,20 @@ test_openApiSubset =
     "can generate a requested open api json for a subset of routes"
     "test/examples/just-route-1.json"
     $ Orb.mkOpenApi Fixtures.basicOpenApiRouter "just-route-1"
+
+test_nullableRefOpenApi :: Tasty.TestTree
+test_nullableRefOpenApi =
+  mkGoldenTest
+    "Generates the correct OpenAPI JSON for a nullable schema"
+    "test/examples/nullable-ref.json"
+    $ Orb.mkOpenApi Fixtures.nullableRefOpenApiRouter "nullable-ref"
+
+test_unionOpenApi :: Tasty.TestTree
+test_unionOpenApi =
+  mkGoldenTest
+    "Generates the correct OpenAPI JSON for a union schema"
+    "test/examples/union.json"
+    $ Orb.mkOpenApi Fixtures.unionOpenApiRouter "union"
 
 mkGoldenTest ::
   Tasty.TestName ->

@@ -1,6 +1,17 @@
 {
     "components": {
         "schemas": {
+            "IntOrObject": {
+                "oneOf": [
+                    {
+                        "type": "integer"
+                    },
+                    {
+                        "$ref": "#/components/schemas/RandomObject"
+                    }
+                ],
+                "title": "IntOrObject"
+            },
             "InternalServerError": {
                 "properties": {
                     "internal_server_error": {
@@ -13,16 +24,20 @@
                 "title": "InternalServerError",
                 "type": "object"
             },
-            "SuccessMessage": {
+            "RandomObject": {
                 "properties": {
-                    "success": {
+                    "bool": {
+                        "type": "boolean"
+                    },
+                    "text": {
                         "type": "string"
                     }
                 },
                 "required": [
-                    "success"
+                    "bool",
+                    "text"
                 ],
-                "title": "SuccessMessage",
+                "title": "RandomObject",
                 "type": "object"
             }
         }
@@ -33,42 +48,15 @@
     },
     "openapi": "3.0.0",
     "paths": {
-        "/test/route1": {
+        "/union": {
             "get": {
-                "operationId": "testRoute1",
+                "operationId": "UnionHandler",
                 "responses": {
                     "200": {
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/SuccessMessage"
-                                }
-                            }
-                        },
-                        "description": ""
-                    },
-                    "500": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/InternalServerError"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/test/route2": {
-            "get": {
-                "operationId": "testRoute2",
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SuccessMessage"
+                                    "$ref": "#/components/schemas/IntOrObject"
                                 }
                             }
                         },

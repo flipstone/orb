@@ -10,6 +10,8 @@ module Fixtures
   , mkTestHandler
   , TestResponses
   , basicOpenApiRouter
+  , nullableRefOpenApiRouter
+  , unionOpenApiRouter
   ) where
 
 import Beeline.Routing ((/-), (/:))
@@ -22,13 +24,26 @@ import Shrubbery qualified as S
 
 import Orb qualified
 
-basicOpenApiRouter :: Orb.OpenApiProvider r => r (S.Union [TestRoute1, TestRoute2, NullableRef])
+basicOpenApiRouter :: Orb.OpenApiProvider r => r (S.Union [TestRoute1, TestRoute2])
 basicOpenApiRouter =
   Orb.provideOpenApi "basic-open-api"
     . R.routeList
     $ Orb.provideOpenApi "just-route-1" (Orb.get (R.make TestRoute1 /- "test/route1"))
       /: Orb.get (R.make TestRoute2 /- "test/route2")
-      /: Orb.get (R.make NullableRef /- "nullable-ref")
+      /: R.emptyRoutes
+
+unionOpenApiRouter :: Orb.OpenApiProvider r => r (S.Union '[Union])
+unionOpenApiRouter =
+  Orb.provideOpenApi "union"
+    . R.routeList
+    $ (Orb.get (R.make Union /- "union"))
+      /: R.emptyRoutes
+
+nullableRefOpenApiRouter :: Orb.OpenApiProvider r => r (S.Union '[NullableRef])
+nullableRefOpenApiRouter =
+  Orb.provideOpenApi "nullable-ref"
+    . R.routeList
+    $ (Orb.get (R.make NullableRef /- "nullable-ref"))
       /: R.emptyRoutes
 
 -- Nullable Ref
@@ -91,7 +106,6 @@ instance Orb.HasHandler TestRoute2 where
 
 type TestResponses =
   [ Orb.Response200 Orb.SuccessMessage
-  , Orb.Response400 (Either Int RandomObject)
   , Orb.Response500 Orb.InternalServerError
   ]
 
@@ -110,7 +124,6 @@ mkTestHandler handlerId =
     , Orb.handlerResponseBodies =
         Orb.responseBodies
           . Orb.addResponseSchema200 Orb.successMessageSchema
-          . Orb.addResponseSchema400 intOrObjectSchema
           . Orb.addResponseSchema500 Orb.internalServerErrorSchema
           $ Orb.noResponseBodies
     , Orb.mkPermissionAction =
@@ -119,22 +132,6 @@ mkTestHandler handlerId =
         \_route Orb.NoRequestBody () ->
           Orb.return200 (Orb.SuccessMessage "Hi")
     }
-
-intOrObjectSchema :: FC.Fleece schema => schema (Either Int RandomObject)
-intOrObjectSchema =
-  FC.eitherOfNamed "IntOrObject" FC.int randomObjectSchema
-
-data RandomObject = RandomObject
-  { randomBool :: Bool
-  , randomText :: T.Text
-  }
-
-randomObjectSchema :: FC.Fleece schema => schema RandomObject
-randomObjectSchema =
-  FC.object $
-    FC.constructor RandomObject
-      #+ FC.required "bool" randomBool FC.boolean
-      #+ FC.required "text" randomText FC.text
 
 data NoPermissions
   = NoPermissions
@@ -155,3 +152,55 @@ instance Orb.PermissionError NoError where
 
   returnPermissionError (NoError void) =
     Void.absurd void
+
+-- Union
+
+data Union = Union
+
+instance Orb.HasHandler Union where
+  type HandlerRequestBody Union = Orb.NoRequestBody
+  type HandlerResponses Union = UnionResponses
+  type HandlerPermissionAction Union = NoPermissions
+  type HandlerMonad Union = IO
+  routeHandler =
+    Orb.Handler
+      { Orb.handlerId = "UnionHandler"
+      , Orb.requestBody = Orb.EmptyRequestBody
+      , Orb.handlerResponseBodies =
+          Orb.responseBodies
+            . Orb.addResponseSchema200 unionResponseSchema
+            . Orb.addResponseSchema500 Orb.internalServerErrorSchema
+            $ Orb.noResponseBodies
+      , Orb.mkPermissionAction =
+          \_route _request -> NoPermissions
+      , Orb.handleRequest =
+          \_route Orb.NoRequestBody () ->
+            Orb.return200 (UnionResponse (Left 42))
+      }
+
+type UnionResponses =
+  [ Orb.Response200 UnionResponse
+  , Orb.Response500 Orb.InternalServerError
+  ]
+
+newtype UnionResponse = UnionResponse (Either Int RandomObject)
+
+unionResponseSchema :: FC.Fleece schema => schema UnionResponse
+unionResponseSchema =
+  FC.coerceSchema intOrObjectSchema
+
+intOrObjectSchema :: FC.Fleece schema => schema (Either Int RandomObject)
+intOrObjectSchema =
+  FC.eitherOfNamed "IntOrObject" FC.int randomObjectSchema
+
+data RandomObject = RandomObject
+  { randomBool :: Bool
+  , randomText :: T.Text
+  }
+
+randomObjectSchema :: FC.Fleece schema => schema RandomObject
+randomObjectSchema =
+  FC.object $
+    FC.constructor RandomObject
+      #+ FC.required "bool" randomBool FC.boolean
+      #+ FC.required "text" randomText FC.text

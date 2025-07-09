@@ -829,6 +829,7 @@ instance FC.Fleece FleeceOpenApi where
           { fleeceName = name
           , schemaIsPrimitive = False
           , openApiKey = key
+          , openApiNullable = False
           , openApiSchema =
               mempty
                 { OpenApi._schemaType = Nothing
