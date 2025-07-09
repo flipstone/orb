@@ -597,12 +597,23 @@ data SchemaInfo = SchemaInfo
   }
 
 isSameSchemaInfo :: SchemaInfo -> SchemaInfo -> Bool
-isSameSchemaInfo (SchemaInfo a1 b1 c1 _ d1 e1) (SchemaInfo a2 b2 c2 _ d2 e2) =
-  a1 == a2
-    && b1 == b2
-    && c1 == c2
-    && d1 == d2
-    && and (Align.alignWith (These.these (const False) (const False) isSameSchemaInfo) e1 e2)
+isSameSchemaInfo
+  (SchemaInfo fleeceName1 schemaIsPrimitive1 openApiKey1 _ openApiNullable1 schemaComponents1)
+  (SchemaInfo fleeceName2 schemaIsPrimitive2 openApiKey2 _ openApiNullable2 schemaComponents2) =
+    fleeceName1 == fleeceName2
+      && schemaIsPrimitive1 == schemaIsPrimitive2
+      && openApiKey1 == openApiKey2
+      && openApiNullable1 == openApiNullable2
+      && and
+        ( Align.alignWith
+            ( These.these
+                (const False)
+                (const False)
+                isSameSchemaInfo
+            )
+            schemaComponents1
+            schemaComponents2
+        )
 
 setSchemaInfoFormat :: T.Text -> SchemaInfo -> SchemaInfo
 setSchemaInfoFormat fmt info =
