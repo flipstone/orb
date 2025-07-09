@@ -25,6 +25,7 @@ testGroup =
     , test_openApiSubset
     , test_nullableRefOpenApi
     , test_unionOpenApi
+    , test_nullableRefCollectComponentsOpenApi
     ]
 
 test_openApi :: Tasty.TestTree
@@ -60,6 +61,13 @@ test_unionOpenApi =
     "Generates the correct OpenAPI JSON for a union schema"
     "test/examples/union.json"
     $ Orb.mkOpenApi Fixtures.unionOpenApiRouter "union"
+
+test_nullableRefCollectComponentsOpenApi :: Tasty.TestTree
+test_nullableRefCollectComponentsOpenApi =
+  mkGoldenTest
+    "Generates the correct OpenAPI JSON for a nullable schema with an inner object schema"
+    "test/examples/nullable-ref-collect-components.json"
+    $ Orb.mkOpenApi Fixtures.nullableRefCollectComponentsOpenApiRouter "nullable-ref-collect-components"
 
 mkGoldenTest ::
   Tasty.TestName ->

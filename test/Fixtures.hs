@@ -12,6 +12,7 @@ module Fixtures
   , basicOpenApiRouter
   , nullableRefOpenApiRouter
   , unionOpenApiRouter
+  , nullableRefCollectComponentsOpenApiRouter
   ) where
 
 import Beeline.Routing ((/-), (/:))
@@ -44,6 +45,13 @@ nullableRefOpenApiRouter =
   Orb.provideOpenApi "nullable-ref"
     . R.routeList
     $ (Orb.get (R.make NullableRef /- "nullable-ref"))
+      /: R.emptyRoutes
+
+nullableRefCollectComponentsOpenApiRouter :: Orb.OpenApiProvider r => r (S.Union '[NullableRefCollectComponents])
+nullableRefCollectComponentsOpenApiRouter =
+  Orb.provideOpenApi "nullable-ref-collect-components"
+    . R.routeList
+    $ (Orb.get (R.make NullableRefCollectComponents /- "nullable-ref-collect-components"))
       /: R.emptyRoutes
 
 -- Nullable Ref
@@ -83,6 +91,52 @@ nullableRefResponseSchema =
   FC.objectNamed "WrappedInteger" $
     FC.constructor NullableRefResponse
       #+ FC.required "field" unNullableRefResponse FC.int
+
+-- Nullable Ref
+
+data NullableRefCollectComponents = NullableRefCollectComponents
+
+instance Orb.HasHandler NullableRefCollectComponents where
+  type HandlerRequestBody NullableRefCollectComponents = Orb.NoRequestBody
+  type HandlerResponses NullableRefCollectComponents = NullableRefCollectComponentsResponses
+  type HandlerPermissionAction NullableRefCollectComponents = NoPermissions
+  type HandlerMonad NullableRefCollectComponents = IO
+  routeHandler =
+    Orb.Handler
+      { Orb.handlerId = "NullableRefCollectComponentsHandler"
+      , Orb.requestBody = Orb.EmptyRequestBody
+      , Orb.handlerResponseBodies =
+          Orb.responseBodies
+            . Orb.addResponseSchema200 (FC.nullable nullableRefCollectComponentsResponseSchema)
+            . Orb.addResponseSchema500 Orb.internalServerErrorSchema
+            $ Orb.noResponseBodies
+      , Orb.mkPermissionAction =
+          \_route _request -> NoPermissions
+      , Orb.handleRequest =
+          \_route Orb.NoRequestBody () ->
+            Orb.return200 (Right NullableRefCollectComponentsResponse {outerField = InnerObject {innerField = False}})
+      }
+
+type NullableRefCollectComponentsResponses =
+  [ Orb.Response200 (Either FC.Null NullableRefCollectComponentsResponse)
+  , Orb.Response500 Orb.InternalServerError
+  ]
+
+newtype NullableRefCollectComponentsResponse = NullableRefCollectComponentsResponse {outerField :: InnerObject}
+
+newtype InnerObject = InnerObject {innerField :: Bool}
+
+nullableRefCollectComponentsResponseSchema :: FC.Fleece schema => schema NullableRefCollectComponentsResponse
+nullableRefCollectComponentsResponseSchema =
+  FC.object $
+    FC.constructor NullableRefCollectComponentsResponse
+      #+ FC.required "outerField" outerField innerObjectSchema
+
+innerObjectSchema :: FC.Fleece schema => schema InnerObject
+innerObjectSchema =
+  FC.object $
+    FC.constructor InnerObject
+      #+ FC.required "innerField" innerField FC.boolean
 
 -- Test Route 1
 

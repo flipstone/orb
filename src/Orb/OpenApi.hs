@@ -31,6 +31,7 @@ import Fleece.Core qualified as FC
 import GHC.TypeLits (symbolVal)
 import Network.HTTP.Media.MediaType qualified as MediaType
 import Network.HTTP.Types qualified as HTTPTypes
+import Text.Show.Pretty (ppShow)
 
 import Orb.Handler qualified as Handler
 import Orb.Response qualified as Response
@@ -171,6 +172,10 @@ combineSchemaComponents left right =
                   <> FC.nameToString (fleeceName this)
                   <> " and "
                   <> FC.nameToString (fleeceName that)
+                  <> ": "
+                  <> ppShow this
+                  <> "\n"
+                  <> ppShow that
 
     addKeyToError :: T.Text -> Either String a -> Either String a
     addKeyToError key errOrSchemaInfo =
@@ -595,7 +600,7 @@ data SchemaInfo = SchemaInfo
   , openApiSchema :: OpenApi.Schema
   , schemaComponents :: Map.Map T.Text SchemaInfo
   }
-  deriving (Eq)
+  deriving (Eq, Show)
 
 setSchemaInfoFormat :: T.Text -> SchemaInfo -> SchemaInfo
 setSchemaInfoFormat fmt info =
@@ -737,7 +742,7 @@ instance FC.Fleece FleeceOpenApi where
           , openApiKey = Just $ fleeceNameToOpenApiKey name
           , openApiNullable = True
           , openApiSchema = openApiSchema schemaInfo
-          , schemaComponents = mempty
+          , schemaComponents = schemaComponents schemaInfo
           }
 
   required name _accessor (FleeceOpenApi errOrSchemaInfo) =
