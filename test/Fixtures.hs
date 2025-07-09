@@ -76,7 +76,15 @@ instance Orb.HasHandler NullableRef where
           \_route _request -> NoPermissions
       , Orb.handleRequest =
           \_route Orb.NoRequestBody () ->
-            Orb.return200 (Right $ NullableRefResponse 42)
+            Orb.return200
+              ( Right
+                  NullableRefResponse
+                    { boolField = False
+                    , nullableBoolField = Right False
+                    , validatedNullableBoolField = Right False
+                    , nullableValidatedBoolField = Right False
+                    }
+              )
       }
 
 type NullableRefResponses =
@@ -84,13 +92,21 @@ type NullableRefResponses =
   , Orb.Response500 Orb.InternalServerError
   ]
 
-newtype NullableRefResponse = NullableRefResponse {unNullableRefResponse :: Int}
+data NullableRefResponse = NullableRefResponse
+  { boolField :: Bool
+  , nullableBoolField :: Either FC.Null Bool
+  , validatedNullableBoolField :: Either FC.Null Bool
+  , nullableValidatedBoolField :: Either FC.Null Bool
+  }
 
 nullableRefResponseSchema :: FC.Fleece schema => schema NullableRefResponse
 nullableRefResponseSchema =
-  FC.objectNamed "WrappedInteger" $
+  FC.object $
     FC.constructor NullableRefResponse
-      #+ FC.required "field" unNullableRefResponse FC.int
+      #+ FC.required "boolField" boolField FC.boolean
+      #+ FC.required "nullableBoolField" nullableBoolField (FC.nullable FC.boolean)
+      #+ FC.required "validatedNullableBoolField" validatedNullableBoolField (FC.transformNamed "MyNullableBool" id id (FC.nullable FC.boolean))
+      #+ FC.required "nullableValidatedBoolField" nullableValidatedBoolField (FC.nullable (FC.transformNamed "MyBool" id id FC.boolean))
 
 -- Nullable Ref Collect Components
 
@@ -115,7 +131,15 @@ instance Orb.HasHandler NullableRefCollectComponents where
           \_route _request -> NoPermissions
       , Orb.handleRequest =
           \_route Orb.NoRequestBody () ->
-            Orb.return200 (Right NullableRefCollectComponentsResponse {outerField = InnerObject {innerField = False}})
+            Orb.return200
+              ( Right
+                  NullableRefCollectComponentsResponse
+                    { outerField =
+                        InnerObject
+                          { innerField = False
+                          }
+                    }
+              )
       }
 
 type NullableRefCollectComponentsResponses =

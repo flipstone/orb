@@ -13,16 +13,41 @@
                 "title": "InternalServerError",
                 "type": "object"
             },
-            "WrappedInteger": {
+            "MyBool": {
+                "type": "boolean"
+            },
+            "MyNullableBool": {
+                "nullable": true,
+                "type": "boolean"
+            },
+            "NullableRefResponse": {
                 "properties": {
-                    "field": {
-                        "type": "integer"
+                    "boolField": {
+                        "type": "boolean"
+                    },
+                    "nullableBoolField": {
+                        "nullable": true,
+                        "type": "boolean"
+                    },
+                    "nullableValidatedBoolField": {
+                        "nullable": true,
+                        "oneOf": [
+                            {
+                                "$ref": "#/components/schemas/MyBool"
+                            }
+                        ]
+                    },
+                    "validatedNullableBoolField": {
+                        "$ref": "#/components/schemas/MyNullableBool"
                     }
                 },
                 "required": [
-                    "field"
+                    "boolField",
+                    "nullableBoolField",
+                    "validatedNullableBoolField",
+                    "nullableValidatedBoolField"
                 ],
-                "title": "WrappedInteger",
+                "title": "NullableRefResponse",
                 "type": "object"
             }
         }
@@ -44,7 +69,7 @@
                                     "nullable": true,
                                     "oneOf": [
                                         {
-                                            "$ref": "#/components/schemas/WrappedInteger"
+                                            "$ref": "#/components/schemas/NullableRefResponse"
                                         }
                                     ]
                                 }

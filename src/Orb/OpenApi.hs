@@ -27,6 +27,7 @@ import Data.Maybe qualified as Maybe
 import Data.OpenApi qualified as OpenApi
 import Data.Text qualified as T
 import Data.These qualified as These
+import Debug.Trace qualified as Debug
 import Fleece.Core qualified as FC
 import GHC.TypeLits (symbolVal)
 import Network.HTTP.Media.MediaType qualified as MediaType
@@ -645,7 +646,7 @@ mkSchemaRef schema =
           then
             OpenApi.Inline $
               mempty
-                { OpenApi._schemaOneOf = Just [ref]
+                { OpenApi._schemaOneOf = Debug.traceShowId (Just [ref])
                 , OpenApi._schemaNullable = Just True
                 }
           else ref
@@ -735,15 +736,19 @@ instance FC.Fleece FleeceOpenApi where
     FleeceOpenApi $ do
       schemaInfo <- fmap rewriteSchemaInfo errOrSchemaInfo
 
-      let
-        name = fleeceName schemaInfo
       pure $
         SchemaInfo
-          { fleeceName = name
+          { fleeceName = fleeceName schemaInfo
           , schemaIsPrimitive = schemaIsPrimitive schemaInfo
-          , openApiKey = Just $ fleeceNameToOpenApiKey name
+          , openApiKey = Debug.traceShowId $ openApiKey schemaInfo
           , openApiNullable = True
-          , openApiSchema = openApiSchema schemaInfo
+          , openApiSchema =
+              (openApiSchema schemaInfo)
+                { OpenApi._schemaNullable =
+                    if schemaIsPrimitive schemaInfo && Maybe.isNothing (openApiKey schemaInfo)
+                      then Just True
+                      else Nothing
+                }
           , schemaComponents = schemaComponents schemaInfo
           }
 
