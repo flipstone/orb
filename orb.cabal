@@ -92,7 +92,6 @@ library
     , mtl
     , openapi3
     , optparse-applicative
-    , pretty-show
     , safe-exceptions
     , semialign
     , shrubbery
@@ -142,7 +141,6 @@ test-suite orb-test
     , openapi3
     , optparse-applicative
     , orb
-    , pretty-show
     , safe-exceptions
     , semialign
     , shrubbery

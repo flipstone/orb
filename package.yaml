@@ -73,7 +73,6 @@ dependencies:
   - wai
   - wai-extra
   - warp
-  - pretty-show
 
 library:
   source-dirs: src

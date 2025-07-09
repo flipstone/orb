@@ -31,7 +31,6 @@ import Fleece.Core qualified as FC
 import GHC.TypeLits (symbolVal)
 import Network.HTTP.Media.MediaType qualified as MediaType
 import Network.HTTP.Types qualified as HTTPTypes
-import Text.Show.Pretty (ppShow)
 
 import Orb.Handler qualified as Handler
 import Orb.Response qualified as Response
@@ -164,7 +163,7 @@ combineSchemaComponents left right =
         These.This this -> Right this
         These.That that -> Right that
         These.These this that ->
-          if this == that
+          if isSameSchemaInfo this that
             then Right this
             else
               Left $
@@ -172,10 +171,6 @@ combineSchemaComponents left right =
                   <> FC.nameToString (fleeceName this)
                   <> " and "
                   <> FC.nameToString (fleeceName that)
-                  <> ": "
-                  <> ppShow this
-                  <> "\n"
-                  <> ppShow that
 
     addKeyToError :: T.Text -> Either String a -> Either String a
     addKeyToError key errOrSchemaInfo =
@@ -600,7 +595,14 @@ data SchemaInfo = SchemaInfo
   , openApiSchema :: OpenApi.Schema
   , schemaComponents :: Map.Map T.Text SchemaInfo
   }
-  deriving (Eq, Show)
+
+isSameSchemaInfo :: SchemaInfo -> SchemaInfo -> Bool
+isSameSchemaInfo (SchemaInfo a1 b1 c1 _ d1 e1) (SchemaInfo a2 b2 c2 _ d2 e2) =
+  a1 == a2
+    && b1 == b2
+    && c1 == c2
+    && d1 == d2
+    && and (Align.alignWith (These.these (const False) (const False) isSameSchemaInfo) e1 e2)
 
 setSchemaInfoFormat :: T.Text -> SchemaInfo -> SchemaInfo
 setSchemaInfoFormat fmt info =

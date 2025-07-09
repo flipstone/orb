@@ -92,7 +92,7 @@ nullableRefResponseSchema =
     FC.constructor NullableRefResponse
       #+ FC.required "field" unNullableRefResponse FC.int
 
--- Nullable Ref
+-- Nullable Ref Collect Components
 
 data NullableRefCollectComponents = NullableRefCollectComponents
 
@@ -108,6 +108,7 @@ instance Orb.HasHandler NullableRefCollectComponents where
       , Orb.handlerResponseBodies =
           Orb.responseBodies
             . Orb.addResponseSchema200 (FC.nullable nullableRefCollectComponentsResponseSchema)
+            . Orb.addResponseSchema400 nullableRefCollectComponentsResponseSchema
             . Orb.addResponseSchema500 Orb.internalServerErrorSchema
             $ Orb.noResponseBodies
       , Orb.mkPermissionAction =
@@ -119,6 +120,7 @@ instance Orb.HasHandler NullableRefCollectComponents where
 
 type NullableRefCollectComponentsResponses =
   [ Orb.Response200 (Either FC.Null NullableRefCollectComponentsResponse)
+  , Orb.Response400 NullableRefCollectComponentsResponse
   , Orb.Response500 Orb.InternalServerError
   ]
 

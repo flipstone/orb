@@ -64,6 +64,16 @@
                         },
                         "description": ""
                     },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/NullableRefCollectComponentsResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
                     "500": {
                         "content": {
                             "application/json": {
