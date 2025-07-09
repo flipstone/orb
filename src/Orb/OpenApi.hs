@@ -596,6 +596,10 @@ data SchemaInfo = SchemaInfo
   , schemaComponents :: Map.Map T.Text SchemaInfo
   }
 
+isArraySchemaInfo :: SchemaInfo -> Bool
+isArraySchemaInfo =
+  (== Just OpenApi.OpenApiArray) . OpenApi._schemaType . openApiSchema
+
 isSameSchemaInfo :: SchemaInfo -> SchemaInfo -> Bool
 isSameSchemaInfo
   (SchemaInfo fleeceName1 schemaIsPrimitive1 openApiKey1 _ openApiNullable1 schemaComponents1)
@@ -745,6 +749,10 @@ instance FC.Fleece FleeceOpenApi where
   nullable (FleeceOpenApi errOrSchemaInfo) =
     FleeceOpenApi $ do
       schemaInfo <- fmap rewriteSchemaInfo errOrSchemaInfo
+      let
+        innerSchemaShouldBeNullable =
+          (schemaIsPrimitive schemaInfo || isArraySchemaInfo schemaInfo)
+            && Maybe.isNothing (openApiKey schemaInfo)
 
       pure $
         SchemaInfo
@@ -755,7 +763,7 @@ instance FC.Fleece FleeceOpenApi where
           , openApiSchema =
               (openApiSchema schemaInfo)
                 { OpenApi._schemaNullable =
-                    if schemaIsPrimitive schemaInfo && Maybe.isNothing (openApiKey schemaInfo)
+                    if innerSchemaShouldBeNullable
                       then Just True
                       else Nothing
                 }

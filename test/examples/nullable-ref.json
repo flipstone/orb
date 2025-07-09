@@ -22,8 +22,22 @@
             },
             "NullableRefResponse": {
                 "properties": {
+                    "arrayOfNullableField": {
+                        "items": {
+                            "nullable": true,
+                            "type": "boolean"
+                        },
+                        "type": "array"
+                    },
                     "boolField": {
                         "type": "boolean"
+                    },
+                    "nullableArrayField": {
+                        "items": {
+                            "type": "boolean"
+                        },
+                        "nullable": true,
+                        "type": "array"
                     },
                     "nullableBoolField": {
                         "nullable": true,
@@ -45,7 +59,9 @@
                     "boolField",
                     "nullableBoolField",
                     "validatedNullableBoolField",
-                    "nullableValidatedBoolField"
+                    "nullableValidatedBoolField",
+                    "nullableArrayField",
+                    "arrayOfNullableField"
                 ],
                 "title": "NullableRefResponse",
                 "type": "object"

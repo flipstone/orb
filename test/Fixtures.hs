@@ -83,6 +83,8 @@ instance Orb.HasHandler NullableRef where
                     , nullableBoolField = Right False
                     , validatedNullableBoolField = Right False
                     , nullableValidatedBoolField = Right False
+                    , nullableArrayField = Right []
+                    , arrayOfNullableField = []
                     }
               )
       }
@@ -97,6 +99,8 @@ data NullableRefResponse = NullableRefResponse
   , nullableBoolField :: Either FC.Null Bool
   , validatedNullableBoolField :: Either FC.Null Bool
   , nullableValidatedBoolField :: Either FC.Null Bool
+  , nullableArrayField :: Either FC.Null [Bool]
+  , arrayOfNullableField :: [Either FC.Null Bool]
   }
 
 nullableRefResponseSchema :: FC.Fleece schema => schema NullableRefResponse
@@ -107,6 +111,8 @@ nullableRefResponseSchema =
       #+ FC.required "nullableBoolField" nullableBoolField (FC.nullable FC.boolean)
       #+ FC.required "validatedNullableBoolField" validatedNullableBoolField (FC.transformNamed "MyNullableBool" id id (FC.nullable FC.boolean))
       #+ FC.required "nullableValidatedBoolField" nullableValidatedBoolField (FC.nullable (FC.transformNamed "MyBool" id id FC.boolean))
+      #+ FC.required "nullableArrayField" nullableArrayField (FC.nullable (FC.list FC.boolean))
+      #+ FC.required "arrayOfNullableField" arrayOfNullableField (FC.list (FC.nullable FC.boolean))
 
 -- Nullable Ref Collect Components
 
