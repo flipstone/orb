@@ -279,9 +279,11 @@ module Orb.Response.StatusCodes
   , return505WithHeaders
   , return511
   , return511WithHeaders
+  , addResponseBodyWithResponseContent
   )
 where
 
+import Data.ByteString.Builder (lazyByteString)
 import Data.ByteString.Char8 qualified as BS8
 import Data.ByteString.Lazy qualified as LBS
 import Data.CaseInsensitive qualified as CI
@@ -296,19 +298,9 @@ import Shrubbery qualified as S
 
 import Orb.Response.ContentType (ContentType, applicationJson)
 import Orb.Response.Document (Document (..))
-import Orb.Response.Response (ResponseBodiesBuilder (..), ResponseBody (..), ResponseData (..))
+import Orb.Response.Response (ResponseBodiesBuilder (..), ResponseBody (..), ResponseContent (..), ResponseData (..))
 import Orb.Response.Schemas (NoContent (..))
 
-{- | Adds a typed response for a given status code to the
-    'ResponseBodiesBuilder'.
-
-This function associates some type @a@ to a response code identified by the
-type-level @tag@. The response body will be the encoding of the type as encoded
-by the provided encoding function, and the @Content-Type@ will be set with the
-provided 'ContentType'.
-
-@since 0.1.0
--}
 addResponseBody ::
   forall tag tags a.
   KnownHTTPStatus tag =>
@@ -320,6 +312,30 @@ addResponseBody ::
   ResponseBodiesBuilder tags ->
   ResponseBodiesBuilder ((tag @= (a, HTTP.ResponseHeaders)) : tags)
 addResponseBody contentType encoder builder =
+  addResponseBodyWithResponseContent
+    contentType
+    (ResponseContentBuilder . lazyByteString . encoder)
+    builder
+
+{- | Adds a typed response for a given status code to the
+    'ResponseBodiesBuilder'.
+
+This function associates some type @a@ to a response code identified by the
+type-level @tag@. The response body will be the encoding of the type as encoded
+by the provided encoding function, and the @Content-Type@ will be set with the
+provided 'ContentType'.
+
+@since 0.1.0
+-}
+addResponseBodyWithResponseContent ::
+  forall tag tags a.
+  KnownHTTPStatus tag =>
+  -- | The MIME type, as a 'BS.ByteString'.
+  ContentType ->
+  (a -> ResponseContent) ->
+  ResponseBodiesBuilder tags ->
+  ResponseBodiesBuilder ((tag @= (a, HTTP.ResponseHeaders)) : tags)
+addResponseBodyWithResponseContent contentType mkResponseContent builder =
   let
     proxyTag :: Proxy tag
     proxyTag = Proxy
@@ -331,7 +347,7 @@ addResponseBody contentType encoder builder =
     runEncoder (value, headers) =
       ResponseData
         { responseDataStatus = status
-        , responseDataBytes = encoder value
+        , responseDataContent = mkResponseContent value
         , responseDataContentType = Just contentType
         , responseDataExtraHeaders = headers
         }
@@ -342,7 +358,7 @@ addResponseBody contentType encoder builder =
       , responseStatusMapBuilder =
           Map.insert
             status
-            (ResponseContent contentType encoder)
+            (ResponseContent contentType)
             (responseStatusMapBuilder builder)
       }
 
@@ -373,7 +389,7 @@ addResponseSchema schema builder =
     runEncoder (value, headers) =
       ResponseData
         { responseDataStatus = status
-        , responseDataBytes = FA.encode schema value
+        , responseDataContent = ResponseContentBuilder . lazyByteString $ FA.encode schema value
         , responseDataContentType = Just applicationJson
         , responseDataExtraHeaders = headers
         }
@@ -415,7 +431,7 @@ addResponseDocument builder =
     encodeDocument (document, headers) =
       ResponseData
         { responseDataStatus = status
-        , responseDataBytes = documentContent document
+        , responseDataContent = ResponseContentBuilder . lazyByteString $ documentContent document
         , responseDataContentType = Just $ documentType document
         , responseDataExtraHeaders =
             ( CI.mk $ BS8.pack "Content-Disposition"
@@ -456,7 +472,7 @@ addNoResponseSchema builder =
     runEncoder (_, headers) =
       ResponseData
         { responseDataStatus = status
-        , responseDataBytes = mempty
+        , responseDataContent = ResponseContentBuilder mempty
         , responseDataContentType = Nothing
         , responseDataExtraHeaders = headers
         }

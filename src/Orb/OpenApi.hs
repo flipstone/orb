@@ -479,7 +479,7 @@ mkResponses handler =
     addResponse (responses, components) (status, responseSchema) = do
       mbSchemaInfo <-
         case responseSchema of
-          Response.ResponseContent _contentType _encoder -> pure Nothing
+          Response.ResponseContent _contentType -> pure Nothing
           Response.ResponseSchema (FleeceOpenApi info) -> fmap Just info
           Response.ResponseDocument -> pure Nothing
           Response.EmptyResponseBody -> pure Nothing
