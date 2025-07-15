@@ -1019,6 +1019,7 @@ rewriteSchemaInfo schemaInfo =
     "Int64" -> setSchemaInfoFormat "int64" $ mkPrimitiveSchema "integer" OpenApi.OpenApiInteger
     "Int32" -> setSchemaInfoFormat "int32" $ mkPrimitiveSchema "integer" OpenApi.OpenApiInteger
     "UTCTime" -> setSchemaInfoFormat "date-time" $ mkPrimitiveSchema "string" OpenApi.OpenApiString
+    "Day" -> setSchemaInfoFormat "date" $ mkPrimitiveSchema "string" OpenApi.OpenApiString
     _ -> schemaInfo
 
 componentsPrefix :: T.Text
