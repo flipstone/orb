@@ -179,12 +179,14 @@ emptyRequestBodyHandler bodies action = do
       maybeToList $
         ("Content-Type",)
           <$> Response.responseDataContentType responseData
+    status = Response.responseDataStatus responseData
+    headers = contentTypeHeader <> Response.responseDataExtraHeaders responseData
 
   Response.respondWith $
-    Wai.responseLBS
-      (Response.responseDataStatus responseData)
-      (contentTypeHeader <> Response.responseDataExtraHeaders responseData)
-      (Response.responseDataBytes responseData)
+    case Response.responseDataContent responseData of
+      Response.ResponseContentFile path mbPart -> Wai.responseFile status headers path mbPart
+      Response.ResponseContentBuilder builder -> Wai.responseBuilder status headers builder
+      Response.ResponseContentStream streamingBody -> Wai.responseStream status headers streamingBody
 
 requestFormDataHandler ::
   ( Response.Has400Response tags

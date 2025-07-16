@@ -10,6 +10,7 @@ module Orb.Response.Response
   , ResponseBodies (..)
   , responseBodyList
   , ResponseBody (..)
+  , ResponseContent (..)
   , ResponseData (..)
   , ResponseBodiesBuilder (..)
   , responseBodies
@@ -19,12 +20,13 @@ where
 
 import Control.Monad.IO.Class qualified as MIO
 import Data.ByteString qualified as BS
-import Data.ByteString.Lazy qualified as LBS
+import Data.ByteString.Builder qualified as BSB
 import Data.Map.Strict qualified as Map
 import Fleece.Core qualified as FC
 import GHC.TypeLits (KnownNat)
 import Network.HTTP.Types qualified as HTTP
 import Network.Wai (Response, ResponseReceived)
+import Network.Wai qualified as Wai
 import Shrubbery qualified as S
 
 import Orb.HasRespond qualified as HasRespond
@@ -41,7 +43,7 @@ responseBodyList =
 
 data ResponseBody where
   ResponseContent ::
-    ContentType -> (body -> LBS.ByteString) -> ResponseBody
+    ContentType -> ResponseBody
   ResponseSchema ::
     (forall schema. FC.Fleece schema => schema body) -> ResponseBody
   ResponseDocument ::
@@ -49,9 +51,14 @@ data ResponseBody where
   EmptyResponseBody ::
     ResponseBody
 
+data ResponseContent
+  = ResponseContentFile FilePath (Maybe Wai.FilePart)
+  | ResponseContentBuilder BSB.Builder
+  | ResponseContentStream Wai.StreamingBody
+
 data ResponseData = ResponseData
   { responseDataStatus :: HTTP.Status
-  , responseDataBytes :: LBS.ByteString
+  , responseDataContent :: ResponseContent
   , responseDataContentType :: Maybe BS.ByteString
   , responseDataExtraHeaders :: HTTP.ResponseHeaders
   }
