@@ -20,29 +20,29 @@ packages:
 - completed:
     name: json-fleece-aeson
     pantry-tree:
-      sha256: 14fc55cbfef5a6751d7168dec038545d05f22e54e28fa310b22b61fad4cfd424
+      sha256: 4d3f8a85148cddd920d9793670cbc71c0da4e7e6c33573e3c80b0fb6042a666b
       size: 581
-    sha256: b461ee43f6b845c4de2401ea656477910f4655bcfa3e47afee0ea57d3b813ea7
-    size: 3042768
+    sha256: 2282f7af6e95de43ed056f05ac23be06ebf3ff4096b48fba3ea09e3b153a2160
+    size: 3043843
     subdir: json-fleece-aeson
-    url: https://github.com/flipstone/json-fleece/archive/83e675bcb56e86955d0472021ec731e2ebff1ef4.tar.gz
-    version: 0.3.6.0
+    url: https://github.com/flipstone/json-fleece/archive/da347e4c983e5c8e22aaff79bef8cf4868c9df0d.tar.gz
+    version: 0.3.7.0
   original:
     subdir: json-fleece-aeson
-    url: https://github.com/flipstone/json-fleece/archive/83e675bcb56e86955d0472021ec731e2ebff1ef4.tar.gz
+    url: https://github.com/flipstone/json-fleece/archive/da347e4c983e5c8e22aaff79bef8cf4868c9df0d.tar.gz
 - completed:
     name: json-fleece-core
     pantry-tree:
       sha256: 7c2ad145e9bd9817fd37b859e8adec6c6d12e606bfefcd0fb33ec6bf95b992b4
       size: 443
-    sha256: b461ee43f6b845c4de2401ea656477910f4655bcfa3e47afee0ea57d3b813ea7
-    size: 3042768
+    sha256: 2282f7af6e95de43ed056f05ac23be06ebf3ff4096b48fba3ea09e3b153a2160
+    size: 3043843
     subdir: json-fleece-core
-    url: https://github.com/flipstone/json-fleece/archive/83e675bcb56e86955d0472021ec731e2ebff1ef4.tar.gz
+    url: https://github.com/flipstone/json-fleece/archive/da347e4c983e5c8e22aaff79bef8cf4868c9df0d.tar.gz
     version: 0.7.0.0
   original:
     subdir: json-fleece-core
-    url: https://github.com/flipstone/json-fleece/archive/83e675bcb56e86955d0472021ec731e2ebff1ef4.tar.gz
+    url: https://github.com/flipstone/json-fleece/archive/da347e4c983e5c8e22aaff79bef8cf4868c9df0d.tar.gz
 - completed:
     name: shrubbery
     pantry-tree:
