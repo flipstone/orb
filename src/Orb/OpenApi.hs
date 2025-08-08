@@ -14,11 +14,13 @@ module Orb.OpenApi
   , schemaWithComponents
   ) where
 
+import Beeline.Params qualified as BP
 import Beeline.Routing qualified as R
 import Control.Monad qualified as Monad
 import Data.Aeson qualified as Aeson
 import Data.Align qualified as Align
 import Data.ByteString.Char8 qualified as BS8
+import Data.DList qualified as DList
 import Data.HashMap.Strict.InsOrd qualified as IOHM
 import Data.Hashable (Hashable)
 import Data.List qualified as List
@@ -303,6 +305,7 @@ instance Handler.ServerRouter OpenApiRouter where
                 { OpenApi._operationOperationId = Just . T.pack . Handler.handlerId $ handler
                 , OpenApi._operationRequestBody = mbReqBody
                 , OpenApi._operationResponses = responses
+                , OpenApi._operationParameters = mkQueryParams handler <> mkHeaderParams handler
                 }
 
             pathInfo =
@@ -468,6 +471,90 @@ mkRequestBody handler =
     Handler.EmptyRequestBody ->
       Right Nothing
 
+mkQueryParams ::
+  Handler.Handler route ->
+  [OpenApi.Referenced OpenApi.Param]
+mkQueryParams handler =
+  case Handler.requestQuery handler of
+    Handler.EmptyRequestQuery ->
+      []
+    Handler.RequestQuery schema ->
+      toOpenApiParams schema OpenApi.ParamQuery
+
+mkHeaderParams ::
+  Handler.Handler route ->
+  [OpenApi.Referenced OpenApi.Param]
+mkHeaderParams handler =
+  case Handler.requestHeaders handler of
+    Handler.EmptyRequestHeaders ->
+      []
+    Handler.RequestHeaders schema ->
+      toOpenApiParams schema OpenApi.ParamHeader
+
+newtype OpenApiParams record a = OpenApiParams
+  { toOpenApiParamsDList :: OpenApi.ParamLocation -> DList.DList (OpenApi.Referenced OpenApi.Param)
+  }
+
+toOpenApiParams ::
+  OpenApiParams record a ->
+  OpenApi.ParamLocation ->
+  [OpenApi.Referenced OpenApi.Param]
+toOpenApiParams params =
+  DList.toList . toOpenApiParamsDList params
+
+instance BP.ParameterSchema OpenApiParams where
+  newtype Parameter OpenApiParams query a
+    = OpenApiItem (OpenApi.ParamLocation -> DList.DList (OpenApi.Referenced OpenApi.Param))
+
+  makeParams _constructor =
+    OpenApiParams (const DList.empty)
+
+  validateParams _unvalidate _validate (OpenApiParams params) =
+    OpenApiParams params
+
+  addParam (OpenApiParams params) (OpenApiItem moreParams) =
+    -- TODO detect conflicts, keep order? always sort lexictally?
+    OpenApiParams (params <> moreParams)
+
+  required _accessor paramDef =
+    OpenApiItem
+      ( DList.singleton
+          . OpenApi.Inline
+          . mkOpenApiScalarParam True paramDef
+      )
+
+  optional _accessor paramDef =
+    OpenApiItem
+      ( DList.singleton
+          . OpenApi.Inline
+          . mkOpenApiScalarParam False paramDef
+      )
+
+  splat _accessor (OpenApiParams f) =
+    OpenApiItem f
+
+instance BP.QuerySchema OpenApiParams where
+  explodedArray _accessor paramDef =
+    OpenApiItem
+      ( DList.singleton
+          . OpenApi.Inline
+          . mkOpenApiExplodedArrayParam False paramDef
+      )
+
+  explodedNonEmpty _accessor paramDef =
+    OpenApiItem
+      ( DList.singleton
+          . OpenApi.Inline
+          . mkOpenApiExplodedArrayParam True paramDef
+      )
+
+instance BP.HeaderSchema OpenApiParams where
+  type Cookies OpenApiParams = OpenApiParams
+
+  cookies _accessor cookieParams =
+    OpenApiItem $ \_location ->
+      toOpenApiParamsDList cookieParams OpenApi.ParamCookie
+
 mkResponses ::
   Handler.Handler router ->
   Either String (OpenApi.Responses, Map.Map T.Text SchemaInfo)
@@ -547,6 +634,60 @@ mkOpenApiPathParam param =
             { OpenApi._schemaType = Just OpenApi.OpenApiString
             }
     }
+
+mkOpenApiScalarParam ::
+  Bool ->
+  R.ParameterDefinition a ->
+  OpenApi.ParamLocation ->
+  OpenApi.Param
+mkOpenApiScalarParam isRequired param location =
+  mempty
+    { OpenApi._paramName = R.parameterName param
+    , OpenApi._paramIn = location
+    , OpenApi._paramRequired = Just isRequired
+    , OpenApi._paramSchema = Just (mkParamSchema param)
+    }
+
+mkOpenApiExplodedArrayParam ::
+  Bool ->
+  R.ParameterDefinition a ->
+  OpenApi.ParamLocation ->
+  OpenApi.Param
+mkOpenApiExplodedArrayParam isRequired param location =
+  let
+    itemSchema =
+      mkParamSchema param
+  in
+    mempty
+      { OpenApi._paramName = R.parameterName param
+      , OpenApi._paramIn = location
+      , OpenApi._paramRequired = Just isRequired
+      , OpenApi._paramStyle = Just OpenApi.StyleForm
+      , OpenApi._paramExplode = Just True
+      , OpenApi._paramSchema =
+          Just
+            . OpenApi.Inline
+            $ mempty
+              { OpenApi._schemaType = Just OpenApi.OpenApiArray
+              , OpenApi._schemaItems = Just (OpenApi.OpenApiItemsObject itemSchema)
+              }
+      }
+
+mkParamSchema :: R.ParameterDefinition param -> OpenApi.Referenced OpenApi.Schema
+mkParamSchema param =
+  let
+    schemaType =
+      case R.parameterType param of
+        R.ParameterString -> OpenApi.OpenApiString
+        R.ParameterNumber -> OpenApi.OpenApiNumber
+        R.ParameterInteger -> OpenApi.OpenApiInteger
+        R.ParameterBoolean -> OpenApi.OpenApiBoolean
+  in
+    OpenApi.Inline $
+      mempty
+        { OpenApi._schemaType = Just schemaType
+        , OpenApi._schemaFormat = R.parameterFormat param
+        }
 
 {- |
   A concrete type that implements the Fleece typeclasses to build an

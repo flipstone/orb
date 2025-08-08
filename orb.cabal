@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           orb
-version:        0.2.0
+version:        0.3.0.0
 description:    Please see the README on GitHub at <https://github.com/flipstone/orb#readme>
 homepage:       https://github.com/flipstone/orb#readme
 bug-reports:    https://github.com/flipstone/orb/issues
@@ -77,10 +77,12 @@ library
       aeson
     , aeson-pretty
     , base >=4.7 && <5
-    , beeline-routing
+    , beeline-params ==0.1.*
+    , beeline-routing ==0.3.*
     , bytestring
     , case-insensitive
     , containers
+    , dlist
     , file-embed
     , filepath
     , hashable
@@ -112,8 +114,20 @@ test-suite orb-test
   main-is: Main.hs
   other-modules:
       Fixtures
+      Fixtures.GetWithCookies
+      Fixtures.GetWithHeaders
+      Fixtures.GetWithQuery
+      Fixtures.NoPermissions
+      Fixtures.NullableRef
+      Fixtures.NullableRefCollectComponents
+      Fixtures.OpenApiSubset
+      Fixtures.SimpleGet
+      Fixtures.SimplePost
+      Fixtures.Union
+      Handler
       OpenApi
       SwaggerUI
+      TestDispatchM
       Paths_orb
   hs-source-dirs:
       test
@@ -124,10 +138,12 @@ test-suite orb-test
       aeson
     , aeson-pretty
     , base >=4.7 && <5
+    , beeline-params ==0.1.*
     , beeline-routing
     , bytestring
     , case-insensitive
     , containers
+    , dlist
     , file-embed
     , filepath
     , hashable

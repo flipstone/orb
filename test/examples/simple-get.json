@@ -1,0 +1,64 @@
+{
+    "components": {
+        "schemas": {
+            "InternalServerError": {
+                "properties": {
+                    "internal_server_error": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "internal_server_error"
+                ],
+                "title": "InternalServerError",
+                "type": "object"
+            },
+            "SuccessMessage": {
+                "properties": {
+                    "success": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "success"
+                ],
+                "title": "SuccessMessage",
+                "type": "object"
+            }
+        }
+    },
+    "info": {
+        "title": "",
+        "version": ""
+    },
+    "openapi": "3.0.0",
+    "paths": {
+        "/test/simple_get": {
+            "get": {
+                "operationId": "simpleGet",
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessMessage"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/InternalServerError"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,6 +1,18 @@
 {
     "components": {
         "schemas": {
+            "BadRequestMessage": {
+                "properties": {
+                    "bad_request": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "bad_request"
+                ],
+                "title": "BadRequestMessage",
+                "type": "object"
+            },
             "InternalServerError": {
                 "properties": {
                     "internal_server_error": {
@@ -33,15 +45,35 @@
     },
     "openapi": "3.0.0",
     "paths": {
-        "/test/route1": {
+        "/test/get_with_headers": {
             "get": {
-                "operationId": "testRoute1",
+                "operationId": "getWithHeaders",
+                "parameters": [
+                    {
+                        "in": "header",
+                        "name": "headerParam",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "content": {
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/SuccessMessage"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "400": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/BadRequestMessage"
                                 }
                             }
                         },

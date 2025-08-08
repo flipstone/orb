@@ -4,6 +4,7 @@ module Main
 
 import Test.Tasty qualified as Tasty
 
+import Handler qualified
 import OpenApi qualified
 import SwaggerUI qualified
 
@@ -12,6 +13,7 @@ main =
   Tasty.defaultMain $
     Tasty.testGroup
       "Orb"
-      [ OpenApi.testGroup
+      [ Handler.testGroup
+      , OpenApi.testGroup
       , SwaggerUI.testGroup
       ]

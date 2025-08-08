@@ -1,6 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell #-}
 
 module SwaggerUI
   ( testGroup
@@ -9,9 +8,8 @@ module SwaggerUI
 import Beeline.Routing qualified as R
 import Control.Monad.IO.Class qualified as MIO
 import Control.Monad.Reader qualified as Reader
-import Data.ByteString.Lazy qualified as LBS
+import Data.Aeson.Encode.Pretty qualified as AesonPretty
 import Data.ByteString.Lazy.Char8 qualified as LBS8
-import Data.FileEmbed qualified as FileEmbed
 import Hedgehog ((===))
 import Hedgehog qualified as HH
 import Network.Wai qualified as Wai
@@ -36,7 +34,7 @@ prop_swaggerUIIndex :: HH.Property
 prop_swaggerUIIndex = HH.withTests 1 . HH.property $ do
   let
     request =
-      WaiTest.setPath (Wai.defaultRequest) "/basic-open-api/"
+      WaiTest.setPath (Wai.defaultRequest) "/simple-get/"
 
   HH.evalIO . WaiTest.withSession swaggerUIApp $ do
     response <- WaiTest.request request
@@ -47,18 +45,24 @@ prop_swaggerUIIndexRedirect :: HH.Property
 prop_swaggerUIIndexRedirect = HH.withTests 1 . HH.property $ do
   let
     request =
-      WaiTest.setPath (Wai.defaultRequest) "/basic-open-api"
+      WaiTest.setPath (Wai.defaultRequest) "/simple-get"
 
   HH.evalIO . WaiTest.withSession swaggerUIApp $ do
     response <- WaiTest.request request
     WaiTest.assertStatus 308 response
-    WaiTest.assertHeader "Location" "/basic-open-api/" response
+    WaiTest.assertHeader "Location" "/simple-get/" response
 
 prop_swaggerUIOpenApi :: HH.Property
 prop_swaggerUIOpenApi = HH.withTests 1 . HH.property $ do
   let
     request =
-      WaiTest.setPath (Wai.defaultRequest) "/basic-open-api/open-api.json"
+      WaiTest.setPath (Wai.defaultRequest) "/simple-get/open-api.json"
+
+  expectedJSON <-
+    HH.evalEither
+      ( AesonPretty.encodePretty
+          <$> Orb.mkOpenApi Fixtures.simpleGetOpenApiRouter "simple-get"
+      )
 
   response <- HH.evalIO . WaiTest.withSession swaggerUIApp $ do
     response <- WaiTest.request request
@@ -66,13 +70,13 @@ prop_swaggerUIOpenApi = HH.withTests 1 . HH.property $ do
     pure response
 
   LBS8.lines (WaiTest.simpleBody response)
-    === LBS8.lines (LBS.fromStrict $(FileEmbed.embedFile "test/examples/basic-open-api.json"))
+    === LBS8.lines expectedJSON
 
 prop_swaggerUIResource :: HH.Property
 prop_swaggerUIResource = HH.withTests 1 . HH.property $ do
   let
     request =
-      WaiTest.setPath (Wai.defaultRequest) "/basic-open-api/index.css"
+      WaiTest.setPath (Wai.defaultRequest) "/simple-get/index.css"
 
   HH.evalIO . WaiTest.withSession swaggerUIApp $ do
     response <- WaiTest.request request
@@ -81,7 +85,7 @@ prop_swaggerUIResource = HH.withTests 1 . HH.property $ do
 
 swaggerUIRouter :: R.Router r => r Orb.SwaggerUIRoute
 swaggerUIRouter =
-  Orb.swaggerUIRoutes Fixtures.basicOpenApiRouter
+  Orb.swaggerUIRoutes Fixtures.simpleGetOpenApiRouter
 
 swaggerUIApp :: Wai.Application
 swaggerUIApp =

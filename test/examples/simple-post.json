@@ -1,0 +1,108 @@
+{
+    "components": {
+        "schemas": {
+            "InternalServerError": {
+                "properties": {
+                    "internal_server_error": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "internal_server_error"
+                ],
+                "title": "InternalServerError",
+                "type": "object"
+            },
+            "SimplePostBody": {
+                "properties": {
+                    "postParam": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "postParam"
+                ],
+                "title": "SimplePostBody",
+                "type": "object"
+            },
+            "SuccessMessage": {
+                "properties": {
+                    "success": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "success"
+                ],
+                "title": "SuccessMessage",
+                "type": "object"
+            },
+            "UnprocessableContentMessage": {
+                "properties": {
+                    "unprocessable_content": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "unprocessable_content"
+                ],
+                "title": "UnprocessableContentMessage",
+                "type": "object"
+            }
+        }
+    },
+    "info": {
+        "title": "",
+        "version": ""
+    },
+    "openapi": "3.0.0",
+    "paths": {
+        "/test/simple_post": {
+            "post": {
+                "operationId": "simplePost",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/SimplePostBody"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessMessage"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "422": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/UnprocessableContentMessage"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/InternalServerError"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        }
+    }
+}

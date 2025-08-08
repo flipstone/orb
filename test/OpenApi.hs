@@ -1,5 +1,3 @@
-{-# LANGUAGE TemplateHaskell #-}
-
 module OpenApi
   ( testGroup
   ) where
@@ -20,33 +18,65 @@ testGroup :: Tasty.TestTree
 testGroup =
   Tasty.testGroup
     "OpenApi"
-    [ test_openApi
-    , TastyHH.testProperty "cannot generate an unknown open api" prop_openApiUnknownLabel
+    [ TastyHH.testProperty "cannot generate an unknown open api" prop_openApiUnknownLabel
+    , test_simpleGet
+    , test_simplePost
+    , test_getWithQuery
+    , test_getWithHeaders
+    , test_getWithCookies
     , test_openApiSubset
     , test_nullableRefOpenApi
     , test_unionOpenApi
     , test_nullableRefCollectComponentsOpenApi
     ]
 
-test_openApi :: Tasty.TestTree
-test_openApi =
-  mkGoldenTest
-    "can generate a requested open api json"
-    "test/examples/basic-open-api.json"
-    $ Orb.mkOpenApi Fixtures.basicOpenApiRouter "basic-open-api"
-
 prop_openApiUnknownLabel :: HH.Property
 prop_openApiUnknownLabel = HH.withTests 1 . HH.property $ do
-  case Orb.mkOpenApi Fixtures.basicOpenApiRouter "unknown-open-api" of
+  case Orb.mkOpenApi Fixtures.simpleGetOpenApiRouter "unknown-open-api" of
     Right _ -> fail "Should not have returned an OpenApi for an unknown label"
     Left msg -> msg === "No OpenApi definition found with label unknown-open-api."
+
+test_simpleGet :: Tasty.TestTree
+test_simpleGet =
+  mkGoldenTest
+    "Generates the correct OpenAPI JSON for a simple get"
+    "test/examples/simple-get.json"
+    $ Orb.mkOpenApi Fixtures.simpleGetOpenApiRouter "simple-get"
+
+test_simplePost :: Tasty.TestTree
+test_simplePost =
+  mkGoldenTest
+    "Generates the correct OpenAPI JSON for a simple post"
+    "test/examples/simple-post.json"
+    $ Orb.mkOpenApi Fixtures.simplePostOpenApiRouter "simple-post"
+
+test_getWithQuery :: Tasty.TestTree
+test_getWithQuery =
+  mkGoldenTest
+    "Generates the correct OpenAPI JSON for a get with query params"
+    "test/examples/get-with-query.json"
+    $ Orb.mkOpenApi Fixtures.getWithQueryOpenApiRouter "get-with-query"
+
+test_getWithHeaders :: Tasty.TestTree
+test_getWithHeaders =
+  mkGoldenTest
+    "Generates the correct OpenAPI JSON for a get with header params"
+    "test/examples/get-with-headers.json"
+    $ Orb.mkOpenApi Fixtures.getWithHeadersOpenApiRouter "get-with-headers"
+
+test_getWithCookies :: Tasty.TestTree
+test_getWithCookies =
+  mkGoldenTest
+    "Generates the correct OpenAPI JSON for a get with header params"
+    "test/examples/get-with-cookies.json"
+    $ Orb.mkOpenApi Fixtures.getWithCookiesOpenApiRouter "get-with-cookies"
 
 test_openApiSubset :: Tasty.TestTree
 test_openApiSubset =
   mkGoldenTest
-    "can generate a requested open api json for a subset of routes"
-    "test/examples/just-route-1.json"
-    $ Orb.mkOpenApi Fixtures.basicOpenApiRouter "just-route-1"
+    "Generates the correct OpenAPI JSON for a subset of routes"
+    "test/examples/open-api-subset.json"
+    $ Orb.mkOpenApi Fixtures.openApiSubsetRouter "open-api-subset"
 
 test_nullableRefOpenApi :: Tasty.TestTree
 test_nullableRefOpenApi =

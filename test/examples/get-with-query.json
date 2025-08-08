@@ -1,6 +1,18 @@
 {
     "components": {
         "schemas": {
+            "BadRequestMessage": {
+                "properties": {
+                    "bad_request": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "bad_request"
+                ],
+                "title": "BadRequestMessage",
+                "type": "object"
+            },
             "InternalServerError": {
                 "properties": {
                     "internal_server_error": {
@@ -33,9 +45,28 @@
     },
     "openapi": "3.0.0",
     "paths": {
-        "/test/route1": {
+        "/test/get_with_query": {
             "get": {
-                "operationId": "testRoute1",
+                "operationId": "getWithQuery",
+                "parameters": [
+                    {
+                        "in": "query",
+                        "name": "textQueryParam",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    {
+                        "in": "query",
+                        "name": "int8QueryParam",
+                        "required": false,
+                        "schema": {
+                            "format": "int8",
+                            "type": "integer"
+                        }
+                    }
+                ],
                 "responses": {
                     "200": {
                         "content": {
@@ -47,28 +78,11 @@
                         },
                         "description": ""
                     },
-                    "500": {
+                    "400": {
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/InternalServerError"
-                                }
-                            }
-                        },
-                        "description": ""
-                    }
-                }
-            }
-        },
-        "/test/route2": {
-            "get": {
-                "operationId": "testRoute2",
-                "responses": {
-                    "200": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "$ref": "#/components/schemas/SuccessMessage"
+                                    "$ref": "#/components/schemas/BadRequestMessage"
                                 }
                             }
                         },

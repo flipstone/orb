@@ -1,5 +1,5 @@
 name:                orb
-version:             0.2.0
+version:             0.3.0.0
 github:              "flipstone/orb"
 license:             MIT
 author:              "Flipstone Technology Partners, Inc"
@@ -49,10 +49,12 @@ dependencies:
   - base >= 4.7 && < 5
   - aeson
   - aeson-pretty
-  - beeline-routing
+  - beeline-params >= 0.1 && < 0.2
+  - beeline-routing >= 0.3 && < 0.4
   - bytestring
   - case-insensitive
   - containers
+  - dlist
   - file-embed
   - filepath
   - hashable
