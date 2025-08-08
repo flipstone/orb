@@ -41,9 +41,7 @@ testQuerySchema =
     ?+ BP.optional int8QueryParam (BP.int8Param "int8QueryParam")
 
 instance Orb.HasHandler GetWithQuery where
-  type HandlerRequestBody GetWithQuery = Orb.NoRequestBody
   type HandlerRequestQuery GetWithQuery = TestQuery
-  type HandlerRequestHeaders GetWithQuery = Orb.NoRequestHeaders
   type HandlerResponses GetWithQuery = TestResponses
   type HandlerPermissionAction GetWithQuery = NoPermissions
   type HandlerMonad GetWithQuery = TDM.TestDispatchM
