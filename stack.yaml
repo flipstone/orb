@@ -26,19 +26,19 @@ packages:
 extra-deps:
 # Beeline
 - github: flipstone/beeline
-  commit: a0793b39bcb1c5a7724eabe8763c932f7fb3f4a8
+  commit: ad51a5197ba71b44f27fd760c6c241ac67f0a52f
   subdirs:
     - beeline-params
     - beeline-routing
 # Fleece
 - github: flipstone/json-fleece
-  commit: 6fae4b628088c26fdddb53f1a44c72459625547a
+  commit: 58cb619ca4334bf42b8a17b151850d7dc9665ed9
   subdirs:
     - json-fleece-aeson
     - json-fleece-core
 # Shrubbery
 - github: flipstone/shrubbery
-  commit: ae5c282af3029179d5ab43a927aecbc8e44971e4
+  commit: a064ede07e01b753a6eb310fc24d9fd8da1ad826
 
 # Override default flag values for local packages and extra-deps
 flags:
