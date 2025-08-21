@@ -313,7 +313,7 @@ addResponseBody ::
   ResponseBodiesBuilder ((tag @= (a, HTTP.ResponseHeaders)) : tags)
 addResponseBody contentType encoder builder =
   addResponseBodyWithResponseContent
-    contentType
+    (Just contentType)
     (ResponseContentBuilder . lazyByteString . encoder)
     builder
 
@@ -331,11 +331,11 @@ addResponseBodyWithResponseContent ::
   forall tag tags a.
   KnownHTTPStatus tag =>
   -- | The MIME type, as a 'BS.ByteString'.
-  ContentType ->
+  Maybe ContentType ->
   (a -> ResponseContent) ->
   ResponseBodiesBuilder tags ->
   ResponseBodiesBuilder ((tag @= (a, HTTP.ResponseHeaders)) : tags)
-addResponseBodyWithResponseContent contentType mkResponseContent builder =
+addResponseBodyWithResponseContent mbContentType mkResponseContent builder =
   let
     proxyTag :: Proxy tag
     proxyTag = Proxy
@@ -348,7 +348,7 @@ addResponseBodyWithResponseContent contentType mkResponseContent builder =
       ResponseData
         { responseDataStatus = status
         , responseDataContent = mkResponseContent value
-        , responseDataContentType = Just contentType
+        , responseDataContentType = mbContentType
         , responseDataExtraHeaders = headers
         }
   in
@@ -358,7 +358,7 @@ addResponseBodyWithResponseContent contentType mkResponseContent builder =
       , responseStatusMapBuilder =
           Map.insert
             status
-            (ResponseContent contentType)
+            (maybe ResponseDocument ResponseContent mbContentType)
             (responseStatusMapBuilder builder)
       }
 
