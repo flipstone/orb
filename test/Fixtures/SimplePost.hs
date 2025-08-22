@@ -54,7 +54,7 @@ handler :: Orb.Handler SimplePost
 handler =
   Orb.Handler
     { Orb.handlerId = "simplePost"
-    , Orb.requestBody = Orb.RequestSchema simplePostBodySchema
+    , Orb.requestBody = Orb.SchemaRequestBody simplePostBodySchema
     , Orb.requestQuery = Orb.EmptyRequestQuery
     , Orb.requestHeaders = Orb.EmptyRequestHeaders
     , Orb.handlerResponseBodies =

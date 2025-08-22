@@ -107,15 +107,15 @@ data NoRequestBody
   = NoRequestBody
 
 data RequestBody body tags where
-  RequestSchema ::
+  SchemaRequestBody ::
     Response.Has422Response tags =>
     (forall schema. FC.Fleece schema => schema body) ->
     RequestBody body tags
-  RequestRawBody ::
+  RawRequestBody ::
     Response.HasResponseCodeWithType tags "422" err =>
     (LBS.ByteString -> Either err body) ->
     RequestBody body tags
-  RequestFormData ::
+  FormDataRequestBody ::
     (Response.Has400Response tags, Response.HasResponseCodeWithType tags "422" err) =>
     (Form -> Either err body) ->
     RequestBody body tags
@@ -243,9 +243,9 @@ readBody ::
   m (Either (S.TaggedUnion tags) (HandlerRequestBody route))
 readBody handler =
   case requestBody handler of
-    RequestSchema schema -> parseBodyRequestSchema schema
-    RequestRawBody bodyDecoder -> parseBodyRaw bodyDecoder
-    RequestFormData formDecoder -> parseBodyFormData formDecoder
+    SchemaRequestBody schema -> parseBodyRequestSchema schema
+    RawRequestBody bodyDecoder -> parseBodyRaw bodyDecoder
+    FormDataRequestBody formDecoder -> parseBodyFormData formDecoder
     EmptyRequestBody -> pure . Right $ NoRequestBody
 
 runPermissionAction ::

@@ -439,7 +439,7 @@ mkRequestBody ::
   Either String (Maybe (OpenApi.Referenced OpenApi.RequestBody, Map.Map T.Text SchemaInfo))
 mkRequestBody handler =
   case Handler.requestBody handler of
-    Handler.RequestSchema (FleeceOpenApi errOrSchemaInfo) -> do
+    Handler.SchemaRequestBody (FleeceOpenApi errOrSchemaInfo) -> do
       schemaInfo <- fmap rewriteSchemaInfo errOrSchemaInfo
 
       let
@@ -464,9 +464,9 @@ mkRequestBody handler =
 
       components <- collectComponents [schemaInfo]
       pure $ Just (requestBody, components)
-    Handler.RequestRawBody _decoder ->
+    Handler.RawRequestBody _decoder ->
       Right Nothing
-    Handler.RequestFormData _formDecoder ->
+    Handler.FormDataRequestBody _formDecoder ->
       Right Nothing
     Handler.EmptyRequestBody ->
       Right Nothing
@@ -566,9 +566,8 @@ mkResponses handler =
     addResponse (responses, components) (status, responseSchema) = do
       mbSchemaInfo <-
         case responseSchema of
-          Response.ResponseContent _contentType -> pure Nothing
-          Response.ResponseSchema (FleeceOpenApi info) -> fmap Just info
-          Response.ResponseDocument -> pure Nothing
+          Response.NoSchemaResponseBody _mbContentType -> pure Nothing
+          Response.SchemaResponseBody (FleeceOpenApi info) -> fmap Just info
           Response.EmptyResponseBody -> pure Nothing
       let
         mkResponseContent schemaRef =

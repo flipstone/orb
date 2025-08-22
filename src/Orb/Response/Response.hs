@@ -42,12 +42,10 @@ responseBodyList =
   Map.toList . responseStatusMap
 
 data ResponseBody where
-  ResponseContent ::
-    ContentType -> ResponseBody
-  ResponseSchema ::
+  NoSchemaResponseBody ::
+    Maybe ContentType -> ResponseBody
+  SchemaResponseBody ::
     (forall schema. FC.Fleece schema => schema body) -> ResponseBody
-  ResponseDocument ::
-    ResponseBody
   EmptyResponseBody ::
     ResponseBody
 

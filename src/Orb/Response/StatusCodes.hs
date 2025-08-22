@@ -358,7 +358,7 @@ addResponseBodyWithResponseContent mbContentType mkResponseContent builder =
       , responseStatusMapBuilder =
           Map.insert
             status
-            (maybe ResponseDocument ResponseContent mbContentType)
+            (NoSchemaResponseBody mbContentType)
             (responseStatusMapBuilder builder)
       }
 
@@ -400,7 +400,7 @@ addResponseSchema schema builder =
       , responseStatusMapBuilder =
           Map.insert
             status
-            (ResponseSchema schema)
+            (SchemaResponseBody schema)
             (responseStatusMapBuilder builder)
       }
 
@@ -444,7 +444,7 @@ addResponseDocument builder =
       { encodeResponseBranchesBuilder =
           S.taggedBranch @tag encodeDocument (encodeResponseBranchesBuilder builder)
       , responseStatusMapBuilder =
-          Map.insert status ResponseDocument (responseStatusMapBuilder builder)
+          Map.insert status (NoSchemaResponseBody Nothing) (responseStatusMapBuilder builder)
       }
 
 {- | Associates a /no-content/ type response with a given status code in the
