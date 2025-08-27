@@ -35,12 +35,12 @@ import Orb.Handler.PermissionError (PermissionError)
 -}
 class PermissionError (PermissionActionError action) => PermissionAction action where
   -- |
-  --     'permissionactionmonad' is an associated type that indicates the monad in which
+  --     'PermissionActionMonad' is an associated type that indicates the monad in which
   --     the permission check will be executed.
   type PermissionActionMonad action :: Type -> Type
 
   -- |
-  --     'PermissionActionMonad' is an associated type that indicates the monad in which
+  --     'PermissionActionHandlerMonad' is an associated type that indicates the monad in which
   --     the handle executes (if it's different than the permission action monad). Because
   --     this defaults to 'PermissionActionMonad action', it's very important that
   --     'PermissionActionMonad action' is not defined in terms of this type, either
@@ -75,7 +75,7 @@ class PermissionError (PermissionActionError action) => PermissionAction action 
     PermissionActionMonad action (Either (PermissionActionError action) (PermissionActionResult action))
 
   -- |
-  --     'runPermissionAction' will be called as part of running a 'Handler' to allow
+  --     'runPermissionActionHandler' will be called as part of running a 'Handler' to allow
   --     the 'PermissionAction' to execute the handler in any way it chooses. This includes
   --     allowing the 'PermissionAction' to convert the handler's monad context to its own
   --     context as necessary.
