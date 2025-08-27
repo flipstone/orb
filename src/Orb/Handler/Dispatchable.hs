@@ -19,6 +19,7 @@ import Network.Wai qualified as Wai
 import Shrubbery qualified as S
 
 import Orb.Handler.Handler qualified as Handler
+import Orb.Handler.PermissionAction qualified as PA
 import Orb.HasLogger qualified as HasLogger
 import Orb.HasRequest qualified as HasRequest
 import Orb.HasRespond qualified as HasRespond
@@ -33,7 +34,7 @@ instance
   , HasRespond.HasRespond m
   , MIO.MonadIO m
   , Handler.HasHandler route
-  , Handler.HandlerMonad route ~ m
+  , PA.PermissionActionMonad (Handler.HandlerPermissionAction route) ~ m
   , Safe.MonadCatch m
   ) =>
   Dispatchable m route

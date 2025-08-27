@@ -1,7 +1,10 @@
+{-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Orb.Handler.PermissionAction
   ( PermissionAction (..)
@@ -32,9 +35,20 @@ import Orb.Handler.PermissionError (PermissionError)
 -}
 class PermissionError (PermissionActionError action) => PermissionAction action where
   -- |
-  --     'PermissionActionMonad' is an associated type that indicates the monad in which
+  --     'permissionactionmonad' is an associated type that indicates the monad in which
   --     the permission check will be executed.
   type PermissionActionMonad action :: Type -> Type
+
+  -- |
+  --     'PermissionActionMonad' is an associated type that indicates the monad in which
+  --     the handle executes (if it's different than the permission action monad). Because
+  --     this defaults to 'PermissionActionMonad action', it's very important that
+  --     'PermissionActionMonad action' is not defined in terms of this type, either
+  --     directly or indirectly. Doing so will result in loop in GHC arising from
+  --     'UndecidableInstances'
+  type PermissionActionHandlerMonad action :: Type -> Type
+
+  type PermissionActionHandlerMonad action = PermissionActionMonad action
 
   -- |
   --     'PermissionActionResult' is an associated type that indicates what type of value
@@ -59,3 +73,26 @@ class PermissionError (PermissionActionError action) => PermissionAction action 
   checkPermissionAction ::
     action ->
     PermissionActionMonad action (Either (PermissionActionError action) (PermissionActionResult action))
+
+  -- |
+  --     'runPermissionAction' will be called as part of running a 'Handler' to allow
+  --     the 'PermissionAction' to execute the handler in any way it chooses. This includes
+  --     allowing the 'PermissionAction' to convert the handler's monad context to its own
+  --     context as necessary.
+  --
+  --     If the 'PermissionActionMonad' and 'PermissionActionHandlerMonad' are the same,
+  --     the default implementation simply passes the 'PermissionActionResult' to the
+  --     handler and does nothing else.
+  runPermissionActionHandler ::
+    action ->
+    PermissionActionResult action ->
+    (PermissionActionResult action -> PermissionActionHandlerMonad action a) ->
+    PermissionActionMonad action a
+  default runPermissionActionHandler ::
+    PermissionActionHandlerMonad action ~ PermissionActionMonad action =>
+    action ->
+    PermissionActionResult action ->
+    (PermissionActionResult action -> PermissionActionHandlerMonad action a) ->
+    PermissionActionMonad action a
+  runPermissionActionHandler _action result handler =
+    handler result

@@ -65,7 +65,7 @@ data Handler route = Handler
       HandlerPermissionAction route
   , handleRequest ::
       HandlerRequest route ->
-      HandlerPermissionResult route ->
+      PA.PermissionActionResult (HandlerPermissionAction route) ->
       HandlerMonad route (S.TaggedUnion (HandlerResponses route))
   }
 
@@ -75,8 +75,8 @@ class
       (PA.PermissionActionError (HandlerPermissionAction route))
       (HandlerResponses route)
   , Response.Has500Response (HandlerResponses route)
-  , PA.PermissionActionMonad (HandlerPermissionAction route) ~ HandlerMonad route
-  , PE.PermissionErrorMonad (PA.PermissionActionError (HandlerPermissionAction route)) ~ HandlerMonad route
+  , PA.PermissionActionHandlerMonad (HandlerPermissionAction route) ~ HandlerMonad route
+  , PE.PermissionErrorMonad (PA.PermissionActionError (HandlerPermissionAction route)) ~ PA.PermissionActionMonad (HandlerPermissionAction route)
   ) =>
   HasHandler route
   where
@@ -99,9 +99,6 @@ class
   type HandlerMonad route :: Kind.Type -> Kind.Type
 
   routeHandler :: Handler route
-
-type HandlerPermissionResult route =
-  PA.PermissionActionResult (HandlerPermissionAction route)
 
 data NoRequestBody
   = NoRequestBody
@@ -150,7 +147,7 @@ runHandler ::
   , HasRequest.HasRequest m
   , HasRespond.HasRespond m
   , MIO.MonadIO m
-  , HandlerMonad route ~ m
+  , PA.PermissionActionMonad (HandlerPermissionAction route) ~ m
   , Safe.MonadCatch m
   ) =>
   Handler route ->
@@ -249,7 +246,10 @@ readBody handler =
     EmptyRequestBody -> pure . Right $ NoRequestBody
 
 runPermissionAction ::
-  (Monad m, HasHandler route, HandlerMonad route ~ m) =>
+  ( Monad m
+  , HasHandler route
+  , PA.PermissionActionMonad (HandlerPermissionAction route) ~ m
+  ) =>
   Handler route ->
   HandlerRequest route ->
   m (S.TaggedUnion (HandlerResponses route))
@@ -262,7 +262,11 @@ runPermissionAction handler request = do
 
   case errOrPermissionResult of
     Left err -> PE.returnPermissionError err
-    Right permissionResult -> handleRequest handler request permissionResult
+    Right permissionResult ->
+      PA.runPermissionActionHandler
+        permissionAction
+        permissionResult
+        (handleRequest handler request)
 
 returnAnyExceptionAs500 ::
   ( MIO.MonadIO m
