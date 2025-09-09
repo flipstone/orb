@@ -104,6 +104,11 @@ library:
           - -Wno-safe
           - -Wno-unsafe
           - -fwrite-ide-info -hiedir=.hie
+        when:
+          - condition: impl (ghc >= 9.8)
+            ghc-options:
+              - -Wterm-variable-capture
+              - -Wextended-warnings
       else:
         ghc-options:
           - -O2

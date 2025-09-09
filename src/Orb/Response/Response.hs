@@ -74,7 +74,7 @@ noResponseBodies =
     }
 
 responseBodies ::
-  (KnownNat length, length ~ S.Length (S.TaggedTypes tags)) =>
+  (KnownNat providedLength, providedLength ~ S.Length (S.TaggedTypes tags)) =>
   ResponseBodiesBuilder tags ->
   ResponseBodies tags
 responseBodies builder =
