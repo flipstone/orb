@@ -3,14 +3,33 @@ name: Build and Test
 on:
   push:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: ${{ github.ref_name != 'main' }}
+
 defaults:
   run:
     shell: bash
 
 jobs:
+  find-stack-yamls:
+    name: Find stack.yamls for GHC Matrix
+    runs-on: ubuntu-22.04
+    outputs:
+      stack-yamls: ${{ steps.set-output.outputs.stack-yamls }}
+    steps:
+      - name: Find Stack Yamls
+        id: set-output
+        uses: flipstone/github-actions/find-stack-ghc-yamls@bef3396e6c3777767d1d4837203cfdb2635b4933
+
   build:
     name: Build and Test
-    runs-on: [self-hosted, linux, x64]
+    needs: find-stack-yamls
+    runs-on: ubuntu-22.04
+    strategy:
+      max-parallel: 5
+      matrix:
+        stack-yaml: ${{ fromJson(needs.find-stack-yamls.outputs.stack-yamls) }}
 
     steps:
       - name: Checkout
@@ -19,18 +38,36 @@ jobs:
       - name: Cache
         uses: actions/cache@v4
         env:
-          cache-version: v1
+          cache-version: v3
         with:
-          key: ${{ env.cache-version }}-${{ hashFiles('stack*.yaml') }}-${{ hashFiles('package.yaml') }}
+          key: ${{ env.cache-version }}-${{ matrix.stack-yaml }}-${{ hashFiles(matrix.stack-yaml, 'stack-base.yaml', 'package.yaml') }}
           restore-keys: |
-            ${{ env.cache-version }}-
+            ${{ env.cache-version }}-${{ matrix.stack-yaml }}-
           path: |
             ./stack-root
 
+      - name: Setup Stack
+        uses: flipstone/github-actions/setup-dockerized-stack@bef3396e6c3777767d1d4837203cfdb2635b4933
+        with:
+          stack-root: ./stack-root
+
       - name: Build and test
-        run: |
-          set -e
-          mkdir -p ./stack-root
-          echo "PROJECT_DIR=$PWD" >> .env
-          mv compose.override.github.yml compose.override.yml
-          ./scripts/build
+        run: ./scripts/test --stack-yaml ${{ matrix.stack-yaml }}
+
+  formatting-check:
+    name: Formatting Check
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Stack (for docker env)
+        uses: flipstone/github-actions/setup-dockerized-stack@bef3396e6c3777767d1d4837203cfdb2635b4933
+        with:
+          stack-root: ./stack-root
+
+      - name: Format and Check for Diff
+        run: ./scripts/format-repo

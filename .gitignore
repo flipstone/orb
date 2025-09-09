@@ -1,3 +1,4 @@
 .stack-work
 .env
 .hie
+test-all-logs

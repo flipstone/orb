@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 module Orb.Handler.Form
   ( Form
   , getForm
@@ -6,7 +8,11 @@ module Orb.Handler.Form
 
 import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as LBS
+
+#if !MIN_VERSION_base(4,20,0)
 import Data.List (foldl')
+#endif
+
 import Data.List.NonEmpty qualified as NEL
 import Data.Map.Merge.Strict (mergeA, traverseMissing, zipWithAMatched)
 import Data.Map.Strict qualified as Map

@@ -1,0 +1,6 @@
+packages:
+  - .
+
+flags:
+  orb:
+    ci: true

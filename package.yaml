@@ -1,5 +1,5 @@
 name:                orb
-version:             0.5.0.0
+version:             0.5.0.1
 github:              "flipstone/orb"
 license:             MIT
 author:              "Flipstone Technology Partners, Inc"
@@ -7,6 +7,9 @@ maintainer:          "development@flipstone.com"
 copyright:           "2025 Flipstone Technology Partners, Inc"
 
 language: Haskell2010
+
+tested-with:
+    GHC == 9.6.7, GHC == 9.8.4, GHC == 9.10.2
 
 default-extensions:
   - ImportQualifiedPost
