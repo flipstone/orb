@@ -1,1 +1,1 @@
-<<: !include stack-ghc-9.6.yaml
+<<: !include stack-ghc-9.10.yaml

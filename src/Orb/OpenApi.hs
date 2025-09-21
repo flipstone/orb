@@ -42,12 +42,13 @@ import Orb.Response qualified as Response
   descriptions of parts of their routes.
 -}
 class Handler.ServerRouter r => OpenApiProvider r where
-  -- |
-  --     Labels the provided router with a user-defined string that can be
-  --     passed later to 'mkOpenApi' to retrieve the OpenApi description for
-  --     that part of the api. If multiple sections are labeled with the
-  --     same label, their definitions will be combined to provide a single
-  --     OpenApi description.
+  {- |
+    Labels the provided router with a user-defined string that can be
+    passed later to 'mkOpenApi' to retrieve the OpenApi description for
+    that part of the api. If multiple sections are labeled with the
+    same label, their definitions will be combined to provide a single
+    OpenApi description.
+  -}
   provideOpenApi :: String -> r a -> r a
 
 instance OpenApiProvider R.RouteRecognizer where

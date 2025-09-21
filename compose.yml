@@ -1,6 +1,6 @@
 services:
   dev:
-    image: ghcr.io/flipstone/haskell-tools:debian-ghc-9.6.6-54c3115
+    image: ghcr.io/flipstone/haskell-tools:debian-ghc-9.10.2-8edd338
     volumes:
       - .:${PROJECT_DIR}
       - flipstone_stack_root:/stack-root

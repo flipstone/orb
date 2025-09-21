@@ -92,9 +92,10 @@ class
 
   type HandlerPermissionAction route :: Kind.Type
 
-  -- |
-  --     'HandlerMonad' is an associated type that specifies the monad
-  --     in which the route handler operates.
+  {- |
+    'HandlerMonad' is an associated type that specifies the monad
+    in which the route handler operates.
+  -}
   type HandlerMonad route :: Kind.Type -> Kind.Type
 
   routeHandler :: Handler route

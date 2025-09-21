@@ -59,30 +59,30 @@ packages:
     pantry-tree:
       sha256: b033b89cb2b953a6243cd653d40739b512aa347956345409d3569f28b4d3da76
       size: 581
-    sha256: 8a23d24b72bfc43d1a28272092a32650754a509aff74a0b6e75d9325341f1dfd
-    size: 3047549
+    sha256: 979df7cbcc191c719c13ac2f76cba0a7a367f128ee34cf67b717b7b4b7e35b87
+    size: 3047551
     subdir: json-fleece-aeson
-    url: https://github.com/flipstone/json-fleece/archive/fd7248990cf19866fbef8834efbd8c987ece0d0b.tar.gz
+    url: https://github.com/flipstone/json-fleece/archive/431bde4202c3ddd958cbf1277ba5c9b9c211322d.tar.gz
     version: 0.3.7.2
   original:
     subdir: json-fleece-aeson
-    url: https://github.com/flipstone/json-fleece/archive/fd7248990cf19866fbef8834efbd8c987ece0d0b.tar.gz
+    url: https://github.com/flipstone/json-fleece/archive/431bde4202c3ddd958cbf1277ba5c9b9c211322d.tar.gz
 - completed:
     name: json-fleece-core
     pantry-tree:
       sha256: 83cbd3f3b1548883235d80473bea1c44170524cde37f799433643632e0571992
       size: 443
-    sha256: 8a23d24b72bfc43d1a28272092a32650754a509aff74a0b6e75d9325341f1dfd
-    size: 3047549
+    sha256: 979df7cbcc191c719c13ac2f76cba0a7a367f128ee34cf67b717b7b4b7e35b87
+    size: 3047551
     subdir: json-fleece-core
-    url: https://github.com/flipstone/json-fleece/archive/fd7248990cf19866fbef8834efbd8c987ece0d0b.tar.gz
+    url: https://github.com/flipstone/json-fleece/archive/431bde4202c3ddd958cbf1277ba5c9b9c211322d.tar.gz
     version: 0.7.1.2
   original:
     subdir: json-fleece-core
-    url: https://github.com/flipstone/json-fleece/archive/fd7248990cf19866fbef8834efbd8c987ece0d0b.tar.gz
+    url: https://github.com/flipstone/json-fleece/archive/431bde4202c3ddd958cbf1277ba5c9b9c211322d.tar.gz
 snapshots:
 - completed:
-    sha256: 238fa745b64f91184f9aa518fe04bdde6552533d169b0da5256670df83a0f1a9
-    size: 721141
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/22/44.yaml
-  original: lts-22.44
+    sha256: d347039f81388e16ea93ddaf9ff1850abfba8f8680ff75fbdd177692542ceb26
+    size: 726286
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/24/8.yaml
+  original: lts-24.8

@@ -34,55 +34,61 @@ import Orb.Handler.PermissionError (PermissionError)
   executed.
 -}
 class PermissionError (PermissionActionError action) => PermissionAction action where
-  -- |
-  --     'PermissionActionMonad' is an associated type that indicates the monad in which
-  --     the permission check will be executed.
+  {- |
+    'PermissionActionMonad' is an associated type that indicates the monad in which
+    the permission check will be executed.
+  -}
   type PermissionActionMonad action :: Type -> Type
 
-  -- |
-  --     'PermissionActionHandlerMonad' is an associated type that indicates the monad in which
-  --     the handle executes (if it's different than the permission action monad). Because
-  --     this defaults to 'PermissionActionMonad action', it's very important that
-  --     'PermissionActionMonad action' is not defined in terms of this type, either
-  --     directly or indirectly. Doing so will result in loop in GHC arising from
-  --     'UndecidableInstances'
+  {- |
+    'PermissionActionHandlerMonad' is an associated type that indicates the monad in which
+    the handle executes (if it's different than the permission action monad). Because
+    this defaults to 'PermissionActionMonad action', it's very important that
+    'PermissionActionMonad action' is not defined in terms of this type, either
+    directly or indirectly. Doing so will result in loop in GHC arising from
+    'UndecidableInstances'
+  -}
   type PermissionActionHandlerMonad action :: Type -> Type
 
   type PermissionActionHandlerMonad action = PermissionActionMonad action
 
-  -- |
-  --     'PermissionActionResult' is an associated type that indicates what type of value
-  --     the 'action' produces as a result of a successful permission check. The value
-  --     produced by the permission check will ultimately be passed to the request handler
-  --     so that it can make use of information gained during the permission check.
+  {- |
+    'PermissionActionResult' is an associated type that indicates what type of value
+    the 'action' produces as a result of a successful permission check. The value
+    produced by the permission check will ultimately be passed to the request handler
+    so that it can make use of information gained during the permission check.
+  -}
   type PermissionActionResult action :: Type
 
-  -- |
-  --     'PermissionActionError' is an associated type that indicates what type of error
-  --     the 'action' produces when a permission check fails. Allowing different instance
-  --     of 'PermissionAction' to produce different errors allows each handler to document
-  --     exactly the permission errors that it might actually produce rather than applying
-  --     all permission errors to all handlers.
+  {- |
+    'PermissionActionError' is an associated type that indicates what type of error
+    the 'action' produces when a permission check fails. Allowing different instance
+    of 'PermissionAction' to produce different errors allows each handler to document
+    exactly the permission errors that it might actually produce rather than applying
+    all permission errors to all handlers.
+  -}
   type PermissionActionError action :: Type
 
-  -- |
-  --     'checkPermissionAction' will be called as part of running a 'Handler' to handle
-  --     an incoming request. If the check succeeds then the result of the check will
-  --     be passed on to the request handler. If the check fails then an error will be
-  --     returned to the client.
+  {- |
+    'checkPermissionAction' will be called as part of running a 'Handler' to handle
+    an incoming request. If the check succeeds then the result of the check will
+    be passed on to the request handler. If the check fails then an error will be
+    returned to the client.
+  -}
   checkPermissionAction ::
     action ->
     PermissionActionMonad action (Either (PermissionActionError action) (PermissionActionResult action))
 
-  -- |
-  --     'runPermissionActionHandler' will be called as part of running a 'Handler' to allow
-  --     the 'PermissionAction' to execute the handler in any way it chooses. This includes
-  --     allowing the 'PermissionAction' to convert the handler's monad context to its own
-  --     context as necessary.
-  --
-  --     If the 'PermissionActionMonad' and 'PermissionActionHandlerMonad' are the same,
-  --     the default implementation simply passes the 'PermissionActionResult' to the
-  --     handler and does nothing else.
+  {- |
+    'runPermissionActionHandler' will be called as part of running a 'Handler' to allow
+    the 'PermissionAction' to execute the handler in any way it chooses. This includes
+    allowing the 'PermissionAction' to convert the handler's monad context to its own
+    context as necessary.
+
+    If the 'PermissionActionMonad' and 'PermissionActionHandlerMonad' are the same,
+    the default implementation simply passes the 'PermissionActionResult' to the
+    handler and does nothing else.
+  -}
   runPermissionActionHandler ::
     action ->
     PermissionActionResult action ->

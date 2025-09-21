@@ -19,25 +19,28 @@ import Shrubbery qualified as S
   directory (e.g. 'StandardPermissionError')
 -}
 class PermissionError err where
-  -- |
-  --     'PermissionErrorMonad' is an associated type that specifies the monad
-  --     in which the permission error handling operates.
+  {- |
+    'PermissionErrorMonad' is an associated type that specifies the monad
+    in which the permission error handling operates.
+  -}
   type PermissionErrorMonad err :: Type -> Type
 
-  -- |
-  --     'PermissionErrorConstraints' is an associated type that allows each permission
-  --     error instance to define exactly which HTTP status codes it produces when
-  --     'returnPermissionError' is used to handle an error. Usually this constraints
-  --     will be defined using helpers such as 'R.Has401Response' to indicate that the
-  --     set of all response codes returned by the handler includes those that are
-  --     produced by the 'PermissionError'
+  {- |
+    'PermissionErrorConstraints' is an associated type that allows each permission
+    error instance to define exactly which HTTP status codes it produces when
+    'returnPermissionError' is used to handle an error. Usually this constraints
+    will be defined using helpers such as 'R.Has401Response' to indicate that the
+    set of all response codes returned by the handler includes those that are
+    produced by the 'PermissionError'
+  -}
   type PermissionErrorConstraints err (tags :: [S.Tag]) :: Constraint
 
-  -- |
-  --     'returnPermissionError' is called as part of running a Handler when the
-  --     permission check for the handler returns an error. It constructs the
-  --     response an instance of the Handler's response type as appropriate for
-  --     the error value passed to it, generally using helpers such as 'H.return401'.
+  {- |
+    'returnPermissionError' is called as part of running a Handler when the
+    permission check for the handler returns an error. It constructs the
+    response an instance of the Handler's response type as appropriate for
+    the error value passed to it, generally using helpers such as 'H.return401'.
+  -}
   returnPermissionError ::
     PermissionErrorConstraints err tags =>
     err ->

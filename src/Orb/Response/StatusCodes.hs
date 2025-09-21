@@ -306,8 +306,9 @@ addResponseBody ::
   KnownHTTPStatus tag =>
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder tags ->
   ResponseBodiesBuilder ((tag @= (a, HTTP.ResponseHeaders)) : tags)
@@ -1259,8 +1260,9 @@ addResponseBody200 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response200 a : responseCodes)
@@ -1324,8 +1326,9 @@ addResponseBody201 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response201 a : responseCodes)
@@ -1390,8 +1393,9 @@ addResponseBody202 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response202 a : responseCodes)
@@ -1456,8 +1460,9 @@ addResponseBody203 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response203 a : responseCodes)
@@ -1560,8 +1565,9 @@ addResponseBody206 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response206 a : responseCodes)
@@ -1626,8 +1632,9 @@ addResponseBody300 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response300 a : responseCodes)
@@ -1692,8 +1699,9 @@ addResponseBody301 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response301 a : responseCodes)
@@ -1758,8 +1766,9 @@ addResponseBody302 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response302 a : responseCodes)
@@ -1824,8 +1833,9 @@ addResponseBody303 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response303 a : responseCodes)
@@ -1909,8 +1919,9 @@ addResponseBody305 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response305 a : responseCodes)
@@ -1975,8 +1986,9 @@ addResponseBody307 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response307 a : responseCodes)
@@ -2041,8 +2053,9 @@ addResponseBody308 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response308 a : responseCodes)
@@ -2107,8 +2120,9 @@ addResponseBody400 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response400 a : responseCodes)
@@ -2173,8 +2187,9 @@ addResponseBody401 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response401 a : responseCodes)
@@ -2239,8 +2254,9 @@ addResponseBody402 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response402 a : responseCodes)
@@ -2305,8 +2321,9 @@ addResponseBody403 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response403 a : responseCodes)
@@ -2371,8 +2388,9 @@ addResponseBody404 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response404 a : responseCodes)
@@ -2437,8 +2455,9 @@ addResponseBody405 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response405 a : responseCodes)
@@ -2503,8 +2522,9 @@ addResponseBody406 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response406 a : responseCodes)
@@ -2569,8 +2589,9 @@ addResponseBody407 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response407 a : responseCodes)
@@ -2635,8 +2656,9 @@ addResponseBody408 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response408 a : responseCodes)
@@ -2701,8 +2723,9 @@ addResponseBody409 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response409 a : responseCodes)
@@ -2767,8 +2790,9 @@ addResponseBody410 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response410 a : responseCodes)
@@ -2833,8 +2857,9 @@ addResponseBody411 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response411 a : responseCodes)
@@ -2899,8 +2924,9 @@ addResponseBody412 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response412 a : responseCodes)
@@ -2965,8 +2991,9 @@ addResponseBody413 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response413 a : responseCodes)
@@ -3031,8 +3058,9 @@ addResponseBody414 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response414 a : responseCodes)
@@ -3097,8 +3125,9 @@ addResponseBody415 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response415 a : responseCodes)
@@ -3163,8 +3192,9 @@ addResponseBody416 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response416 a : responseCodes)
@@ -3229,8 +3259,9 @@ addResponseBody417 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response417 a : responseCodes)
@@ -3295,8 +3326,9 @@ addResponseBody418 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response418 a : responseCodes)
@@ -3361,8 +3393,9 @@ addResponseBody422 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response422 a : responseCodes)
@@ -3427,8 +3460,9 @@ addResponseBody428 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response428 a : responseCodes)
@@ -3493,8 +3527,9 @@ addResponseBody429 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response429 a : responseCodes)
@@ -3559,8 +3594,9 @@ addResponseBody431 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response431 a : responseCodes)
@@ -3625,8 +3661,9 @@ addResponseBody500 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response500 a : responseCodes)
@@ -3691,8 +3728,9 @@ addResponseBody501 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response501 a : responseCodes)
@@ -3757,8 +3795,9 @@ addResponseBody502 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response502 a : responseCodes)
@@ -3823,8 +3862,9 @@ addResponseBody503 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response503 a : responseCodes)
@@ -3889,8 +3929,9 @@ addResponseBody504 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response504 a : responseCodes)
@@ -3955,8 +3996,9 @@ addResponseBody505 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response505 a : responseCodes)
@@ -4021,8 +4063,9 @@ addResponseBody511 ::
   forall a responseCodes.
   -- | The MIME type, as a 'BS.ByteString'.
   ContentType ->
-  -- | The encoder function, which takes a type @a@ and encodes it to a
-  -- 'LBS.ByteString'.
+  {- | The encoder function, which takes a type @a@ and encodes it to a
+  'LBS.ByteString'.
+  -}
   (a -> LBS.ByteString) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response511 a : responseCodes)
