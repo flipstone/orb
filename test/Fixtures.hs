@@ -11,4 +11,5 @@ import Fixtures.NullableRefCollectComponents as Export
 import Fixtures.OpenApiSubset as Export
 import Fixtures.SimpleGet as Export
 import Fixtures.SimplePost as Export
+import Fixtures.TaggedUnion as Export
 import Fixtures.Union as Export

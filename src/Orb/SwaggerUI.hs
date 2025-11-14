@@ -7,6 +7,7 @@
 
 module Orb.SwaggerUI
   ( swaggerUIRoutes
+  , swaggerUIRoutesWithOptions
   , SwaggerUIRoute (SwaggerUIRoute, swaggerOpenApis, swaggerApiLabel, swaggerUIPath)
   , dispatchSwaggerUIRoute
   , SwaggerUIPath
@@ -54,8 +55,39 @@ import Orb.Response qualified as Response
   @/<api-label>@ under whatever path you choose to include 'swaggerUIRoutes'
   within your application's routes.
 -}
-swaggerUIRoutes :: R.Router r => OrbOpenApi.OpenApiRouter a -> r SwaggerUIRoute
-swaggerUIRoutes openApiRouter =
+swaggerUIRoutes ::
+  R.Router r =>
+  OrbOpenApi.OpenApiRouter a ->
+  r SwaggerUIRoute
+swaggerUIRoutes =
+  swaggerUIRoutesWithOptions OrbOpenApi.defaultOpenApiOptions
+
+{- |
+  These routes can be included in your application routes to provide an
+  auto-generate SwaggerUI for any OpenAPI specs defined by the router passed
+  in. The provided router should have the root-level routing of the APIs so
+  that they can be invoked successfully via the paths found in the generated
+  OpenAPI specs. The 'SwaggerUIRoute' type has a 'Dispatchable' instance, so
+  requests can be handled via 'Orb.dispatch', which will be done automatically
+  if the routes are in a Shrubbery union using Orbs automatic dispatching for
+  unions.
+
+  A separate SwaggerUI will be offered for each of the APIs labeled via
+  'OrbOpenApi.provideOpenApi' in the provided router. These can be accessed via
+  @/<api-label>@ under whatever path you choose to include 'swaggerUIRoutes'
+  within your application's routes.
+
+  A version of 'swaggerUIRoutes' that takes an 'OrbOpenApi.OpenApiOptions'
+  value. If you use this function, you probably also want to use
+  'Orb.Main.mainWithDefaultOptions' instead of 'Orb.Main.main' and specify the
+  same options that you're passing to this function.
+-}
+swaggerUIRoutesWithOptions ::
+  R.Router r =>
+  OrbOpenApi.OpenApiOptions ->
+  OrbOpenApi.OpenApiRouter a ->
+  r SwaggerUIRoute
+swaggerUIRoutesWithOptions options openApiRouter =
   let
     pathRouter =
       R.routeList $
@@ -65,7 +97,7 @@ swaggerUIRoutes openApiRouter =
           /: R.get (R.make SwaggerUIResource /+ R.Param fileNameParam swaggerUIResourcePath)
           /: R.emptyRoutes
   in
-    R.make (SwaggerUIRoute (OrbOpenApi.mkAllOpenApis openApiRouter))
+    R.make (SwaggerUIRoute (OrbOpenApi.mkAllOpenApis options openApiRouter))
       /+ R.Param apiLabelParam swaggerApiLabel
       /> R.Subrouter pathRouter swaggerUIPath
 
@@ -86,7 +118,7 @@ fileNameParam =
   the browser.
 -}
 data SwaggerUIRoute = SwaggerUIRoute
-  { swaggerOpenApis :: Either String (Map.Map String OpenApi.OpenApi)
+  { swaggerOpenApis :: Either [OrbOpenApi.OpenApiError] (Map.Map String OpenApi.OpenApi)
   , swaggerApiLabel :: T.Text
   , swaggerUIPath :: SwaggerUIPath
   }
@@ -140,14 +172,14 @@ dispatchSwaggerUIRoute ::
   (HasRespond.HasRespond m, HasRequest.HasRequest m, MIO.MonadIO m) =>
   SwaggerUIRoute ->
   m Wai.ResponseReceived
-dispatchSwaggerUIRoute (SwaggerUIRoute errOrOpenApis apiLabel apiPath) =
-  case errOrOpenApis of
-    Left err ->
+dispatchSwaggerUIRoute (SwaggerUIRoute errsOrOpenApis apiLabel apiPath) =
+  case errsOrOpenApis of
+    Left errs ->
       Response.respondWith $
         Wai.responseLBS
           HTTP.status500
           [("Content-Type", Response.textPlain)]
-          (LBS8.pack err)
+          (LBS8.pack . unlines . map OrbOpenApi.renderOpenApiError $ errs)
     Right allOpenApis ->
       case Map.lookup (T.unpack apiLabel) allOpenApis of
         Nothing -> Response.respondWith notFoundResponse

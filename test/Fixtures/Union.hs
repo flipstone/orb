@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
 
 module Fixtures.Union
@@ -10,7 +11,7 @@ module Fixtures.Union
 import Beeline.Routing ((/-), (/:))
 import Beeline.Routing qualified as R
 import Data.Text qualified as T
-import Fleece.Core ((#+))
+import Fleece.Core ((#+), (#|))
 import Fleece.Core qualified as FC
 import Shrubbery qualified as S
 
@@ -46,7 +47,7 @@ instance Orb.HasHandler Union where
           \_request -> NoPermissions
       , Orb.handleRequest =
           \_request () ->
-            Orb.return200 (UnionResponse (Left 42))
+            Orb.return200 (S.unify @Int 42)
       }
 
 type UnionResponses =
@@ -54,15 +55,13 @@ type UnionResponses =
   , Orb.Response500 Orb.InternalServerError
   ]
 
-newtype UnionResponse = UnionResponse (Either Int RandomObject)
+type UnionResponse = S.Union [Int, RandomObject]
 
 unionResponseSchema :: FC.Fleece schema => schema UnionResponse
 unionResponseSchema =
-  FC.coerceSchema intOrObjectSchema
-
-intOrObjectSchema :: FC.Fleece schema => schema (Either Int RandomObject)
-intOrObjectSchema =
-  FC.eitherOfNamed "IntOrObject" FC.int randomObjectSchema
+  FC.unionNamed "UnionResponse" $
+    FC.unionMember FC.int
+      #| FC.unionMember randomObjectSchema
 
 data RandomObject = RandomObject
   { randomBool :: Bool

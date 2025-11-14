@@ -61,7 +61,10 @@ prop_swaggerUIOpenApi = HH.withTests 1 . HH.property $ do
   expectedJSON <-
     HH.evalEither
       ( AesonPretty.encodePretty
-          <$> Orb.mkOpenApi Fixtures.simpleGetOpenApiRouter "simple-get"
+          <$> Orb.mkOpenApi
+            Orb.defaultOpenApiOptions
+            Fixtures.simpleGetOpenApiRouter
+            "simple-get"
       )
 
   response <- HH.evalIO . WaiTest.withSession swaggerUIApp $ do
