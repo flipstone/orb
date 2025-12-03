@@ -1,12 +1,19 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 
 module Orb.OpenApi
   ( mkOpenApi
   , mkAllOpenApis
+  , OpenApiError
+  , renderOpenApiError
   , openApiLabels
+  , OpenApiOptions (openApiAllowedSchemaNameChars)
+  , defaultOpenApiOptions
   , OpenApiProvider (provideOpenApi)
   , OpenApiRouter
   , FleeceOpenApi
@@ -17,8 +24,11 @@ module Orb.OpenApi
 import Beeline.Params qualified as BP
 import Beeline.Routing qualified as R
 import Control.Monad qualified as Monad
+import Control.Monad.Reader qualified as Reader
+import Control.Monad.Trans qualified as Trans
 import Data.Aeson qualified as Aeson
 import Data.Align qualified as Align
+import Data.Bifunctor qualified as Bifunctor
 import Data.ByteString.Char8 qualified as BS8
 import Data.DList qualified as DList
 import Data.HashMap.Strict.InsOrd qualified as IOHM
@@ -27,6 +37,8 @@ import Data.List qualified as List
 import Data.Map.Strict qualified as Map
 import Data.Maybe qualified as Maybe
 import Data.OpenApi qualified as OpenApi
+import Data.Semialign.Indexed qualified as IAlign
+import Data.Set qualified as Set
 import Data.Text qualified as T
 import Data.These qualified as These
 import Fleece.Core qualified as FC
@@ -66,11 +78,11 @@ openApiLabels (OpenApiRouter builders) =
   Returns all the 'OpenApi.OpenApi' descriptions that have been labeled in
   the specified router. If any of them return an error, it will be returned.
 -}
-mkAllOpenApis :: OpenApiRouter a -> Either String (Map.Map String OpenApi.OpenApi)
-mkAllOpenApis router =
+mkAllOpenApis :: OpenApiOptions -> OpenApiRouter a -> Either [OpenApiError] (Map.Map String OpenApi.OpenApi)
+mkAllOpenApis options router =
   let
     mkLabeledApi label = do
-      api <- mkOpenApi router label
+      api <- mkOpenApi options router label
       pure (label, api)
   in
     Map.fromList <$> traverse mkLabeledApi (openApiLabels router)
@@ -81,38 +93,59 @@ mkAllOpenApis router =
   no section with the label can be found or if an error occurs while generating
   the OpenApi description, an error will be returned.
 -}
-mkOpenApi :: OpenApiRouter a -> String -> Either String OpenApi.OpenApi
-mkOpenApi (OpenApiRouter builders) label = do
-  builder <-
-    case Map.lookup label (labeledBuilders builders) of
-      Nothing -> Left ("No OpenApi definition found with label " <> label <> ".")
-      Just builder -> Right builder
+mkOpenApi :: OpenApiOptions -> OpenApiRouter a -> String -> Either [OpenApiError] OpenApi.OpenApi
+mkOpenApi options (OpenApiRouter builders) label =
+  runOpenApiGen options $ do
+    builder <-
+      case Map.lookup label (labeledBuilders builders) of
+        Nothing -> failOpenApiGenOne (NoDefinitionForLabel label)
+        Just builder -> pure builder
 
-  apiInfo <-
-    runOpenApiBuilder builder $
-      PathInfo
-        { pathInfoPath = ""
-        , pathInfoParams = []
-        }
+    apiInfo <-
+      runOpenApiBuilder builder $
+        PathInfo
+          { pathInfoPath = ""
+          , pathInfoParams = []
+          }
 
-  let
-    paths =
-      toIOHM . apiPaths $ apiInfo
+    case DList.toList (lintApiInfo options apiInfo) of
+      someErrors@(_ : _) ->
+        failOpenApiGenMany someErrors
+      [] -> do
+        let
+          paths =
+            toIOHM . apiPaths $ apiInfo
 
-    componentsSchemas =
-      toIOHM
-        . fmap openApiSchema
-        . apiSchemaComponents
-        $ apiInfo
+          componentsSchemas =
+            toIOHM
+              . fmap openApiSchema
+              . apiSchemaComponents
+              $ apiInfo
 
-  pure $
-    mempty
-      { OpenApi._openApiPaths = paths
-      , OpenApi._openApiComponents =
+        pure $
           mempty
-            { OpenApi._componentsSchemas = componentsSchemas
+            { OpenApi._openApiPaths = paths
+            , OpenApi._openApiComponents =
+                mempty
+                  { OpenApi._componentsSchemas = componentsSchemas
+                  }
             }
-      }
+
+lintApiInfo :: OpenApiOptions -> ApiInfo -> DList.DList OpenApiError
+lintApiInfo options apiInfo =
+  Map.foldMapWithKey
+    (checkSchemaComponentEntry options)
+    (apiSchemaComponents apiInfo)
+
+checkSchemaComponentEntry :: OpenApiOptions -> T.Text -> SchemaInfo -> DList.DList OpenApiError
+checkSchemaComponentEntry options schemaName schemaInfo =
+  let
+    allowedChars =
+      openApiAllowedSchemaNameChars options
+  in
+    if T.all (flip Set.member allowedChars) schemaName
+      then DList.empty
+      else DList.singleton (InvalidSchemaName schemaName schemaInfo allowedChars)
 
 toIOHM :: Hashable k => Map.Map k v -> IOHM.InsOrdHashMap k v
 toIOHM =
@@ -130,12 +163,13 @@ emptyApiInfo =
     , apiSchemaComponents = Map.empty
     }
 
-combineApiInfo :: ApiInfo -> ApiInfo -> Either String ApiInfo
+combineApiInfo :: ApiInfo -> ApiInfo -> OpenApiGen ApiInfo
 combineApiInfo left right = do
   components <-
-    combineSchemaComponents
-      (apiSchemaComponents left)
-      (apiSchemaComponents right)
+    eitherToOpenApiGen $
+      combineSchemaComponents
+        (apiSchemaComponents left)
+        (apiSchemaComponents right)
   pure $
     ApiInfo
       { apiPaths =
@@ -158,32 +192,29 @@ combinePathItems left right =
 combineSchemaComponents ::
   Map.Map T.Text SchemaInfo ->
   Map.Map T.Text SchemaInfo ->
-  Either String (Map.Map T.Text SchemaInfo)
+  Either OpenApiError (Map.Map T.Text SchemaInfo)
 combineSchemaComponents left right =
   let
-    checkForConflict theseSchemas =
+    checkForConflict ::
+      T.Text ->
+      These.These SchemaInfo SchemaInfo ->
+      Either OpenApiError SchemaInfo
+    checkForConflict key theseSchemas =
       case theseSchemas of
         These.This this -> Right this
         These.That that -> Right that
         These.These this that ->
-          if isSameSchemaInfo this that
-            then Right this
-            else
+          case DList.toList (schemaConflicts this that) of
+            [] -> pure this
+            conflicts ->
               Left $
-                "Conflicting schema definitions found "
-                  <> FC.nameToString (fleeceName this)
-                  <> " and "
-                  <> FC.nameToString (fleeceName that)
-
-    addKeyToError :: T.Text -> Either String a -> Either String a
-    addKeyToError key errOrSchemaInfo =
-      case errOrSchemaInfo of
-        Left err -> Left (T.unpack key <> ": " <> err)
-        Right schemaInfo -> Right schemaInfo
+                SchemaConflict
+                  key
+                  this
+                  that
+                  conflicts
   in
-    Map.traverseWithKey
-      addKeyToError
-      (Align.alignWith checkForConflict left right)
+    sequence (IAlign.ialignWith checkForConflict left right)
 
 singletonApiInfo ::
   Map.Map T.Text SchemaInfo ->
@@ -196,10 +227,105 @@ singletonApiInfo components pathInfo pathItem =
     , apiSchemaComponents = components
     }
 
-newtype OpenApiBuilder
-  = OpenApiBuilder (PathInfo -> Either String ApiInfo)
+{- |
+  Options can be specified to 'mkOpenApi' and 'mkAllOpenApis' to control the
+  OpenApi construction. This type is exported without it's constructor. Use
+  'defaultOpenApiOptions' to construct a value and use record update syntax
+  to update whichever options you wish.
 
-runOpenApiBuilder :: OpenApiBuilder -> PathInfo -> Either String ApiInfo
+  See the record members below.
+-}
+data OpenApiOptions
+  = OpenApiOptions
+  { openApiAllowedSchemaNameChars :: Set.Set Char
+  {- ^ Controls which characters are allowed in the names of schemas in the
+  generated OpenAPI spec. By default this is set to @0-9A-Z_.a-z@ as this
+  promotes better names in code that is from from the resulting OpenAPI spec
+  -}
+  }
+
+{- |
+  Sensible default options for generating OpenAPI specs. See the descriptions of
+  each record field fold the default values.
+-}
+defaultOpenApiOptions :: OpenApiOptions
+defaultOpenApiOptions =
+  OpenApiOptions
+    { openApiAllowedSchemaNameChars =
+        Set.fromList
+          ( -- Update the docs for openApiAllowedSchemaNameChars if you change this
+            ['0' .. '9'] ++ ['A' .. 'Z'] ++ "_." ++ ['a' .. 'z']
+          )
+    }
+
+newtype OpenApiGen a
+  = OpenApiGen (Reader.ReaderT OpenApiOptions (Either [OpenApiError]) a)
+  deriving newtype (Functor, Applicative, Monad)
+
+failOpenApiGenOne :: OpenApiError -> OpenApiGen a
+failOpenApiGenOne =
+  failOpenApiGenMany . pure
+
+failOpenApiGenMany :: [OpenApiError] -> OpenApiGen a
+failOpenApiGenMany =
+  OpenApiGen . Trans.lift . Left
+
+data OpenApiError
+  = InternalError String
+  | NoDefinitionForLabel String
+  | BeelineMethodUsed HTTPTypes.StdMethod PathInfo
+  | UnsupportedMethod HTTPTypes.StdMethod PathInfo
+  | InvalidSchemaName T.Text SchemaInfo (Set.Set Char)
+  | SchemaConflict T.Text SchemaInfo SchemaInfo [String]
+
+instance Show OpenApiError where
+  show = renderOpenApiError
+
+renderOpenApiError :: OpenApiError -> String
+renderOpenApiError err =
+  case err of
+    InternalError msg ->
+      "Internal Error: " <> msg
+    NoDefinitionForLabel label ->
+      "No OpenApi definition found with label " <> label <> "."
+    BeelineMethodUsed method pathInfo ->
+      "Unable to make OpenAPI description for router defined using standard Beeline 'method' (or helpers such as 'get'): "
+        <> BS8.unpack (HTTPTypes.renderStdMethod method)
+        <> " "
+        <> pathInfoPath pathInfo
+    UnsupportedMethod method pathInfo ->
+      "Unable to create OpenAPI for description of "
+        <> pathInfoPath pathInfo
+        <> " due to use of HTTP Method: "
+        <> BS8.unpack (HTTPTypes.renderStdMethod method)
+    InvalidSchemaName schemaName schemaInfo allowedChars ->
+      "Invalid Schema Name: "
+        <> show schemaName
+        <> " only the following characters are allowed, "
+        <> show (Set.toList allowedChars)
+        <> ".\n"
+        <> renderPath (schemaPath schemaInfo)
+    SchemaConflict key this that conflicts ->
+      unlines $
+        ("Conflicting schema definitions found for " <> T.unpack key)
+          : "========= Left Side"
+          : renderPath (schemaPath this)
+          : "========= Right side"
+          : renderPath (schemaPath that)
+          : "========= Conflicts"
+          : conflicts
+
+runOpenApiGen :: OpenApiOptions -> OpenApiGen a -> Either [OpenApiError] a
+runOpenApiGen options (OpenApiGen reader) =
+  Reader.runReaderT reader options
+
+eitherToOpenApiGen :: Either OpenApiError a -> OpenApiGen a
+eitherToOpenApiGen = OpenApiGen . Trans.lift . Bifunctor.first pure
+
+newtype OpenApiBuilder
+  = OpenApiBuilder (PathInfo -> OpenApiGen ApiInfo)
+
+runOpenApiBuilder :: OpenApiBuilder -> PathInfo -> OpenApiGen ApiInfo
 runOpenApiBuilder (OpenApiBuilder f) =
   f
 
@@ -212,7 +338,7 @@ modifyOpenApiBuilderPathInfo f (OpenApiBuilder mkApiInfo) =
 
 emptyOpenApiBuilder :: OpenApiBuilder
 emptyOpenApiBuilder =
-  OpenApiBuilder (const (Right emptyApiInfo))
+  OpenApiBuilder (const (pure emptyApiInfo))
 
 combineOpenApiBuilder ::
   OpenApiBuilder ->
@@ -289,7 +415,7 @@ instance Handler.ServerRouter OpenApiRouter where
     let
       builder =
         OpenApiBuilder $ \parentContext -> do
-          mbRequestBody <- mkRequestBody handler
+          mbRequestBody <- eitherToOpenApiGen $ mkRequestBody handler
 
           let
             (mbReqBody, reqComponents) =
@@ -297,8 +423,10 @@ instance Handler.ServerRouter OpenApiRouter where
                 Nothing -> (Nothing, Map.empty)
                 Just (reqBody, reqComps) -> (Just reqBody, reqComps)
 
-          (responses, responseComponents) <- mkResponses handler
-          allComponents <- combineSchemaComponents reqComponents responseComponents
+          (responses, responseComponents) <- eitherToOpenApiGen $ mkResponses handler
+          allComponents <-
+            eitherToOpenApiGen $
+              combineSchemaComponents reqComponents responseComponents
 
           let
             operation =
@@ -317,11 +445,7 @@ instance Handler.ServerRouter OpenApiRouter where
 
           case mbPathItem of
             Nothing ->
-              Left $
-                "Unable to create OpenAPI for description of "
-                  <> pathInfoPath pathInfo
-                  <> " due to use of HTTP Method: "
-                  <> BS8.unpack (HTTPTypes.renderStdMethod method)
+              failOpenApiGenOne (UnsupportedMethod method pathInfo)
             Just pathItem -> do
               pure $ singletonApiInfo allComponents pathInfo pathItem
     in
@@ -382,12 +506,7 @@ instance R.Router OpenApiRouter where
               pathInfo =
                 mkRoute parentContext
             in
-              Left
-                ( "Unable to make OpenAPI description for router defined using standard Beeline 'method' (or helpers such as 'get'): "
-                    <> BS8.unpack (HTTPTypes.renderStdMethod method)
-                    <> " "
-                    <> pathInfoPath pathInfo
-                )
+              failOpenApiGenOne (BeelineMethodUsed method pathInfo)
     in
       OpenApiRouter $
         emptyOpenApiBuilders
@@ -437,11 +556,11 @@ mkPathItem method pathInfo operation =
 
 mkRequestBody ::
   Handler.Handler route ->
-  Either String (Maybe (OpenApi.Referenced OpenApi.RequestBody, Map.Map T.Text SchemaInfo))
+  Either OpenApiError (Maybe (OpenApi.Referenced OpenApi.RequestBody, Map.Map T.Text SchemaInfo))
 mkRequestBody handler =
   case Handler.requestBody handler of
-    Handler.SchemaRequestBody (FleeceOpenApi errOrSchemaInfo) -> do
-      schemaInfo <- fmap rewriteSchemaInfo errOrSchemaInfo
+    Handler.SchemaRequestBody (FleeceOpenApi mkErrOrSchemaInfo) -> do
+      schemaInfo <- mkErrOrSchemaInfo []
 
       let
         schemaRef =
@@ -558,7 +677,7 @@ instance BP.HeaderSchema OpenApiParams where
 
 mkResponses ::
   Handler.Handler router ->
-  Either String (OpenApi.Responses, Map.Map T.Text SchemaInfo)
+  Either OpenApiError (OpenApi.Responses, Map.Map T.Text SchemaInfo)
 mkResponses handler =
   let
     schemas =
@@ -568,7 +687,7 @@ mkResponses handler =
       mbSchemaInfo <-
         case responseSchema of
           Response.NoSchemaResponseBody _mbContentType -> pure Nothing
-          Response.SchemaResponseBody (FleeceOpenApi info) -> fmap Just info
+          Response.SchemaResponseBody (FleeceOpenApi mkInfo) -> fmap Just (mkInfo [])
           Response.EmptyResponseBody -> pure Nothing
       let
         mkResponseContent schemaRef =
@@ -696,7 +815,7 @@ mkParamSchema param =
   description of the schema.
 -}
 newtype FleeceOpenApi a = FleeceOpenApi
-  { unFleeceOpenApi :: Either String SchemaInfo
+  { unFleeceOpenApi :: Path -> Either OpenApiError SchemaInfo
   }
 
 {- |
@@ -714,7 +833,7 @@ data SchemaWithComponents = SchemaWithComponents
   Fleece schema. If an error occurs during construction (e.g. conflicting
   definitions of the same component), an error will be returned.
 -}
-schemaWithComponents :: FleeceOpenApi a -> Either String SchemaWithComponents
+schemaWithComponents :: FleeceOpenApi a -> Either OpenApiError SchemaWithComponents
 schemaWithComponents =
   fmap
     ( \schemaInfo ->
@@ -726,39 +845,95 @@ schemaWithComponents =
                 (schemaComponents schemaInfo)
           }
     )
+    . ($ [])
     . unFleeceOpenApi
+
+data PathEntry
+  = PathSchema FC.Name
+  | PathField FC.Name String
+  deriving (Show)
+
+renderPathEntry :: PathEntry -> String
+renderPathEntry pathEntry =
+  case pathEntry of
+    PathSchema schemaName -> "Schema " <> FC.nameToString schemaName
+    PathField schemaName field -> FC.nameToString schemaName <> "." <> field
+
+type Path = [PathEntry]
+
+addSchemaToPath :: FC.Name -> Path -> Path
+addSchemaToPath =
+  (:) . PathSchema
+
+addFieldToPath :: String -> Path -> Path
+addFieldToPath field path =
+  case path of
+    [] -> [PathField topLevelDummySchemaName field]
+    (PathSchema schemaName : rest) -> PathField schemaName field : rest
+    (PathField schemaName oldField : rest) -> PathField schemaName (oldField <> "." <> field) : rest
+
+topLevelDummySchemaName :: FC.Name
+topLevelDummySchemaName = FC.unqualifiedName "<<toplevel>>"
+
+renderPath :: Path -> String
+renderPath path =
+  case path of
+    [] -> renderPath [PathSchema topLevelDummySchemaName]
+    (first : rest) ->
+      let
+        render :: String -> PathEntry -> String
+        render label pathEntry =
+          "  - " <> label <> ": " <> renderPathEntry pathEntry
+      in
+        unlines $
+          (render "Found at" first)
+            : map (render "Within") rest
 
 data SchemaInfo = SchemaInfo
   { fleeceName :: FC.Name
+  , schemaPath :: Path
   , schemaIsPrimitive :: Bool
   , openApiKey :: Maybe T.Text
   , openApiNullable :: Bool
   , openApiSchema :: OpenApi.Schema
   , schemaComponents :: Map.Map T.Text SchemaInfo
   }
+  deriving (Show)
 
 isArraySchemaInfo :: SchemaInfo -> Bool
 isArraySchemaInfo =
   (== Just OpenApi.OpenApiArray) . OpenApi._schemaType . openApiSchema
 
-isSameSchemaInfo :: SchemaInfo -> SchemaInfo -> Bool
-isSameSchemaInfo
-  (SchemaInfo fleeceName1 schemaIsPrimitive1 openApiKey1 _ openApiNullable1 schemaComponents1)
-  (SchemaInfo fleeceName2 schemaIsPrimitive2 openApiKey2 _ openApiNullable2 schemaComponents2) =
-    fleeceName1 == fleeceName2
-      && schemaIsPrimitive1 == schemaIsPrimitive2
-      && openApiKey1 == openApiKey2
-      && openApiNullable1 == openApiNullable2
-      && and
+schemaConflicts :: SchemaInfo -> SchemaInfo -> DList.DList String
+schemaConflicts
+  (SchemaInfo fleeceName1 _path1 schemaIsPrimitive1 openApiKey1 _nullable1 openApiSchema1 schemaComponents1)
+  (SchemaInfo fleeceName2 _path2 schemaIsPrimitive2 openApiKey2 _nullable2 openApiSchema2 schemaComponents2) =
+    eqConflict "Fleece Name" fleeceName1 fleeceName2
+      <> eqConflict "Is Primitive" schemaIsPrimitive1 schemaIsPrimitive2
+      <> eqConflict "OpenAPI Key" openApiKey1 openApiKey2
+      <> eqConflict "OpenAPI Schema" openApiSchema1 openApiSchema2
+      <> foldMap
+        id
         ( Align.alignWith
             ( These.these
-                (const False)
-                (const False)
-                isSameSchemaInfo
+                (\leftSchema -> DList.singleton (show (fleeceName leftSchema) <> " only present in first"))
+                (\rightSchema -> DList.singleton (show (fleeceName rightSchema) <> " only present in second"))
+                schemaConflicts
             )
             schemaComponents1
             schemaComponents2
         )
+
+eqConflict ::
+  (Eq a, Show a) =>
+  String ->
+  a ->
+  a ->
+  DList.DList String
+eqConflict name left right =
+  if left == right
+    then DList.empty
+    else DList.singleton (name <> ": " <> show left <> " /= " <> show right)
 
 setSchemaInfoFormat :: T.Text -> SchemaInfo -> SchemaInfo
 setSchemaInfoFormat fmt info =
@@ -769,7 +944,19 @@ setSchemaInfoFormat fmt info =
           }
     }
 
-collectComponents :: [SchemaInfo] -> Either String (Map.Map T.Text SchemaInfo)
+setOpenApiType :: OpenApi.OpenApiType -> FleeceOpenApi a -> FleeceOpenApi a
+setOpenApiType typ (FleeceOpenApi mkErrOrSchemaInfo) = do
+  FleeceOpenApi $ \path -> do
+    schemaInfo <- mkErrOrSchemaInfo path
+    pure
+      schemaInfo
+        { openApiSchema =
+            (openApiSchema schemaInfo)
+              { OpenApi._schemaType = Just typ
+              }
+        }
+
+collectComponents :: [SchemaInfo] -> Either OpenApiError (Map.Map T.Text SchemaInfo)
 collectComponents schemaInfos =
   let
     mkTopLevel schemaInfo =
@@ -811,10 +998,12 @@ mkSchemaRef schema =
 mkPrimitiveSchema ::
   String ->
   OpenApi.OpenApiType ->
+  Path ->
   SchemaInfo
-mkPrimitiveSchema name openApiType =
+mkPrimitiveSchema name openApiType path =
   SchemaInfo
     { fleeceName = FC.unqualifiedName name
+    , schemaPath = path
     , schemaIsPrimitive = True
     , openApiKey = Nothing
     , openApiNullable = False
@@ -833,40 +1022,55 @@ data FieldInfo = FieldInfo
 
 instance FC.Fleece FleeceOpenApi where
   data Object FleeceOpenApi _object _constructor
-    = Object (Either String [FieldInfo])
+    = Object (Path -> Either OpenApiError [FieldInfo])
 
   data Field FleeceOpenApi _object _field
-    = Field (Either String FieldInfo)
+    = Field (Path -> Either OpenApiError FieldInfo)
 
   data AdditionalFields FleeceOpenApi _object _field
     = AdditionalFields
 
   data UnionMembers FleeceOpenApi _allTypes _handledTypes
-    = UnionMembers (Either String [SchemaInfo])
+    = UnionMembers (Path -> Either OpenApiError [SchemaInfo])
 
   data TaggedUnionMembers FleeceOpenApi _allTags _handledTags
-    = TaggedUnionMembers (FieldInfo -> String -> Either String [(T.Text, SchemaInfo)])
+    = TaggedUnionMembers (Path -> FieldInfo -> String -> Either OpenApiError [(T.Text, SchemaInfo)])
 
-  schemaName (FleeceOpenApi errOrSchemaInfo) =
-    case errOrSchemaInfo of
-      Left err -> FC.unqualifiedName ("Unable to get schema name:" <> err)
+  schemaName (FleeceOpenApi mkErrOrSchemaInfo) =
+    -- We might not be able to make a name here because 'mkErrOrSchemaInfo' might
+    -- return an error. 'schemaName' cannot return an error, however, so we are
+    -- forced to reflect the error in the name of the schema. This is not ideal,
+    -- but the error raised by the schema will almost certainly be raised elsewhere
+    -- as part of the OpenApi spec generation, so it will get reported as an error
+    -- elsewhere in addition to in the name of this schema.
+    case mkErrOrSchemaInfo [] of
+      Left err ->
+        let
+          shortErr =
+            takeWhile (/= '\n') (renderOpenApiError err)
+        in
+          FC.unqualifiedName ("Unable to get schema name:" <> shortErr)
       Right schemaInfo -> fleeceName schemaInfo
 
+  format formatString (FleeceOpenApi mkErrOrSchemaInfo) =
+    FleeceOpenApi $ \path ->
+      fmap (setSchemaInfoFormat (T.pack formatString)) (mkErrOrSchemaInfo path)
+
   number =
-    FleeceOpenApi . Right $ mkPrimitiveSchema "number" OpenApi.OpenApiNumber
+    FleeceOpenApi $ Right . mkPrimitiveSchema "number" OpenApi.OpenApiNumber
 
   text =
-    FleeceOpenApi . Right $ mkPrimitiveSchema "text" OpenApi.OpenApiString
+    FleeceOpenApi $ Right . mkPrimitiveSchema "text" OpenApi.OpenApiString
 
   boolean =
-    FleeceOpenApi . Right $ mkPrimitiveSchema "boolean" OpenApi.OpenApiBoolean
+    FleeceOpenApi $ Right . mkPrimitiveSchema "boolean" OpenApi.OpenApiBoolean
 
   null =
-    FleeceOpenApi . Right $ mkPrimitiveSchema "null" OpenApi.OpenApiNull
+    FleeceOpenApi $ Right . mkPrimitiveSchema "null" OpenApi.OpenApiNull
 
-  array (FleeceOpenApi errOrItemSchemaInfo) =
-    FleeceOpenApi $ do
-      itemSchemaInfo <- errOrItemSchemaInfo
+  array (FleeceOpenApi mkErrOrItemSchemaInfo) =
+    FleeceOpenApi $ \path -> do
+      itemSchemaInfo <- mkErrOrItemSchemaInfo path
       components <- collectComponents [itemSchemaInfo]
 
       let
@@ -876,6 +1080,7 @@ instance FC.Fleece FleeceOpenApi where
       pure $
         SchemaInfo
           { fleeceName = FC.annotateName (fleeceName itemSchemaInfo) "array"
+          , schemaPath = path
           , schemaIsPrimitive = False
           , openApiKey = Nothing
           , openApiNullable = False
@@ -887,9 +1092,9 @@ instance FC.Fleece FleeceOpenApi where
           , schemaComponents = components
           }
 
-  nullable (FleeceOpenApi errOrSchemaInfo) =
-    FleeceOpenApi $ do
-      schemaInfo <- fmap rewriteSchemaInfo errOrSchemaInfo
+  nullable (FleeceOpenApi mkErrOrSchemaInfo) =
+    FleeceOpenApi $ \path -> do
+      schemaInfo <- mkErrOrSchemaInfo path
       let
         innerSchemaShouldBeNullable =
           (schemaIsPrimitive schemaInfo || isArraySchemaInfo schemaInfo)
@@ -898,6 +1103,7 @@ instance FC.Fleece FleeceOpenApi where
       pure $
         SchemaInfo
           { fleeceName = fleeceName schemaInfo
+          , schemaPath = path
           , schemaIsPrimitive = schemaIsPrimitive schemaInfo
           , openApiKey = openApiKey schemaInfo
           , openApiNullable = True
@@ -911,9 +1117,9 @@ instance FC.Fleece FleeceOpenApi where
           , schemaComponents = schemaComponents schemaInfo
           }
 
-  required name _accessor (FleeceOpenApi errOrSchemaInfo) =
-    Field $ do
-      schemaInfo <- fmap rewriteSchemaInfo errOrSchemaInfo
+  required name _accessor (FleeceOpenApi mkErrOrSchemaInfo) =
+    Field $ \path -> do
+      schemaInfo <- mkErrOrSchemaInfo (addFieldToPath name path)
       pure $
         FieldInfo
           { fieldName = T.pack name
@@ -921,9 +1127,9 @@ instance FC.Fleece FleeceOpenApi where
           , fieldSchemaInfo = schemaInfo
           }
 
-  optional name _accessor (FleeceOpenApi errOrSchemaInfo) =
-    Field $ do
-      schemaInfo <- fmap rewriteSchemaInfo errOrSchemaInfo
+  optional name _accessor (FleeceOpenApi mkErrOrSchemaInfo) =
+    Field $ \path -> do
+      schemaInfo <- mkErrOrSchemaInfo (addFieldToPath name path)
       pure $
         FieldInfo
           { fieldName = T.pack name
@@ -937,21 +1143,23 @@ instance FC.Fleece FleeceOpenApi where
   additionalFields _accessor _schema =
     AdditionalFields
 
-  objectNamed name (Object errOrFieldsInReverse) =
-    FleeceOpenApi (mkObjectForFields name =<< errOrFieldsInReverse)
+  objectNamed name (Object mkErrOrFieldsInReverse) =
+    FleeceOpenApi $ \path ->
+      mkObjectForFields path name =<< mkErrOrFieldsInReverse (addSchemaToPath name path)
 
   constructor _cons =
-    Object (Right [])
+    Object . const . Right $ []
 
-  field (Object fieldInfos) (Field newFieldInfo) =
-    Object (liftA2 (:) newFieldInfo fieldInfos)
+  field (Object mkFieldInfos) (Field mkNewFieldInfo) =
+    Object (\path -> liftA2 (:) (mkNewFieldInfo path) (mkFieldInfos path))
 
   additional (Object _fields) _additional =
-    Object (Left "Fleece additional fields not currently support for OpenAPI")
+    Object . const . Left . InternalError $
+      "Fleece additional fields not currently support for OpenAPI"
 
-  validateNamed name _uncheck _check (FleeceOpenApi errOrSchemaInfo) = do
-    FleeceOpenApi $ do
-      schemaInfo <- fmap rewriteSchemaInfo errOrSchemaInfo
+  validateNamed name _uncheck _check (FleeceOpenApi mkErrOrSchemaInfo) = do
+    FleeceOpenApi $ \path -> do
+      schemaInfo <- mkErrOrSchemaInfo (addSchemaToPath name path)
 
       if schemaIsPrimitive schemaInfo
         then do
@@ -963,7 +1171,15 @@ instance FC.Fleece FleeceOpenApi where
               , openApiNullable = False
               , schemaComponents = components
               }
-        else pure schemaInfo
+        else
+          pure $
+            schemaInfo
+              { fleeceName = name
+              , openApiKey = Just . fleeceNameToOpenApiKey $ name
+              }
+
+  validateAnonymous _uncheck _check (FleeceOpenApi errOrSchemaInfo) = do
+    FleeceOpenApi errOrSchemaInfo
 
   boundedEnumNamed name toText =
     let
@@ -972,32 +1188,34 @@ instance FC.Fleece FleeceOpenApi where
           (Aeson.toJSON . toText)
           [minBound .. maxBound]
     in
-      FleeceOpenApi
-        . Right
-        $ SchemaInfo
-          { fleeceName = name
-          , schemaIsPrimitive = False
-          , openApiKey = Just . fleeceNameToOpenApiKey $ name
-          , openApiNullable = False
-          , openApiSchema =
-              mempty
-                { OpenApi._schemaType = Just OpenApi.OpenApiString
-                , OpenApi._schemaEnum = Just enumValues
-                }
-          , schemaComponents = Map.empty
-          }
+      FleeceOpenApi $ \path ->
+        Right $
+          SchemaInfo
+            { fleeceName = name
+            , schemaPath = path
+            , schemaIsPrimitive = False
+            , openApiKey = Just . fleeceNameToOpenApiKey $ name
+            , openApiNullable = False
+            , openApiSchema =
+                mempty
+                  { OpenApi._schemaType = Just OpenApi.OpenApiString
+                  , OpenApi._schemaEnum = Just enumValues
+                  }
+            , schemaComponents = Map.empty
+            }
 
-  unionNamed name (UnionMembers errOrMembers) =
-    FleeceOpenApi $ do
+  unionNamed name (UnionMembers mkErrOrMembers) =
+    FleeceOpenApi $ \path -> do
       let
         key = Just $ fleeceNameToOpenApiKey name
 
-      members <- errOrMembers
+      members <- mkErrOrMembers (PathSchema name : path)
       components <- collectComponents members
 
       pure $
         SchemaInfo
           { fleeceName = name
+          , schemaPath = path
           , schemaIsPrimitive = False
           , openApiKey = key
           , openApiNullable = False
@@ -1012,16 +1230,18 @@ instance FC.Fleece FleeceOpenApi where
           , schemaComponents = components
           }
 
-  unionMemberWithIndex _idx (FleeceOpenApi errOrSchemaInfo) =
-    UnionMembers $ do
-      schemaInfo <- errOrSchemaInfo
-      pure [rewriteSchemaInfo schemaInfo]
+  unionMemberWithIndex _idx (FleeceOpenApi mkErrOrSchemaInfo) =
+    UnionMembers $ \path -> do
+      schemaInfo <- mkErrOrSchemaInfo path
+      pure [schemaInfo]
 
   unionCombine (UnionMembers left) (UnionMembers right) =
-    UnionMembers $ liftA2 (<>) left right
+    -- Don't change this to '<>' or we might get bitten by accidental
+    -- polymorphism
+    UnionMembers $ \path -> liftA2 (++) (left path) (right path)
 
   taggedUnionNamed name tagPropertyString (TaggedUnionMembers mkMembers) =
-    FleeceOpenApi $ do
+    FleeceOpenApi $ \path -> do
       let
         tagProperty =
           T.pack tagPropertyString
@@ -1029,8 +1249,8 @@ instance FC.Fleece FleeceOpenApi where
         memberKeyPrefix =
           FC.nameUnqualified name <> "."
 
-        FleeceOpenApi errOrStringSchema =
-          FC.text
+        errOrStringSchema =
+          unFleeceOpenApi FC.text (PathSchema name : path)
 
         mkTagField tagSchema =
           FieldInfo
@@ -1043,14 +1263,14 @@ instance FC.Fleece FleeceOpenApi where
           case openApiKey schemaInfo of
             Just key -> Right (tagValue, componentsPrefix <> key)
             Nothing ->
-              Left $
+              Left . InternalError $
                 "No Schema Key found for member "
                   <> T.unpack tagValue
                   <> " of union "
                   <> FC.nameToString name
 
       stringSchema <- errOrStringSchema
-      members <- mkMembers (mkTagField stringSchema) memberKeyPrefix
+      members <- mkMembers (PathSchema name : path) (mkTagField stringSchema) memberKeyPrefix
 
       components <- collectComponents (fmap snd members)
 
@@ -1072,6 +1292,7 @@ instance FC.Fleece FleeceOpenApi where
       pure $
         SchemaInfo
           { fleeceName = name
+          , schemaPath = path
           , schemaIsPrimitive = False
           , openApiKey = key
           , openApiNullable = False
@@ -1085,43 +1306,73 @@ instance FC.Fleece FleeceOpenApi where
           , schemaComponents = components
           }
 
-  taggedUnionMemberWithTag tag (Object errOrFieldsInReverse) =
-    TaggedUnionMembers $ \tagField memberKeyPrefix -> do
+  taggedUnionMemberWithTag tag (Object mkErrOrFieldsInReverse) =
+    TaggedUnionMembers $ \path tagField memberKeyPrefix -> do
       let
         tagValue =
           symbolVal tag
 
-        -- TODO: come up with better name
         memberName =
           FC.unqualifiedName (memberKeyPrefix <> tagValue)
 
-      -- TODO: add tag property to schema
-      fieldsInReverse <- errOrFieldsInReverse
+      fieldsInReverse <- mkErrOrFieldsInReverse path
 
       let
         fieldsInReverseWithTag =
           fieldsInReverse <> [tagField]
 
-      objectSchema <- mkObjectForFields memberName fieldsInReverseWithTag
+      objectSchema <- mkObjectForFields path memberName fieldsInReverseWithTag
 
       pure [(T.pack tagValue, objectSchema)]
 
   taggedUnionCombine (TaggedUnionMembers mkLeft) (TaggedUnionMembers mkRight) =
-    TaggedUnionMembers $ \tagProperty memberKeyPrefix -> do
-      left <- mkLeft tagProperty memberKeyPrefix
-      right <- mkRight tagProperty memberKeyPrefix
-      pure (left <> right)
+    TaggedUnionMembers $ \path tagProperty memberKeyPrefix -> do
+      left <- mkLeft path tagProperty memberKeyPrefix
+      right <- mkRight path tagProperty memberKeyPrefix
+      -- Don't change this to '<>' or we might get bitten by accidental
+      -- polymorphism
+      pure (left ++ right)
 
   jsonString (FleeceOpenApi _schemaInfo) =
     FleeceOpenApi
+      . const
       . Left
+      . InternalError
       $ "Fleece jsonString is not currently implemented for OpenApi"
 
+  --
+  -- Default implementations we override to get OpenAPI specific behavior.
+  -- Unfortunately this requires that we duplicate the default implementations
+  -- of these members from the class implementations in json-fleece because
+  -- we have no way to access and call the defaults.
+  --
+
+  int = setOpenApiType OpenApi.OpenApiInteger $ FC.boundedIntegralNumberAnonymous
+
+  int8 = setOpenApiType OpenApi.OpenApiInteger $ FC.format "int8" FC.boundedIntegralNumberAnonymous
+
+  int16 = setOpenApiType OpenApi.OpenApiInteger $ FC.format "int16" FC.boundedIntegralNumberAnonymous
+
+  int32 = setOpenApiType OpenApi.OpenApiInteger $ FC.format "int32" FC.boundedIntegralNumberAnonymous
+
+  int64 = setOpenApiType OpenApi.OpenApiInteger $ FC.format "int64" FC.boundedIntegralNumberAnonymous
+
+  word = setOpenApiType OpenApi.OpenApiInteger $ FC.format "word" FC.boundedIntegralNumberAnonymous
+
+  word8 = setOpenApiType OpenApi.OpenApiInteger $ FC.format "word8" FC.boundedIntegralNumberAnonymous
+
+  word16 = setOpenApiType OpenApi.OpenApiInteger $ FC.format "word16" FC.boundedIntegralNumberAnonymous
+
+  word32 = setOpenApiType OpenApi.OpenApiInteger $ FC.format "word32" FC.boundedIntegralNumberAnonymous
+
+  word64 = setOpenApiType OpenApi.OpenApiInteger $ FC.format "word64" FC.boundedIntegralNumberAnonymous
+
 mkObjectForFields ::
+  Path ->
   FC.Name ->
   [FieldInfo] ->
-  Either String SchemaInfo
-mkObjectForFields name fieldsInReverse = do
+  Either OpenApiError SchemaInfo
+mkObjectForFields path name fieldsInReverse = do
   let
     key =
       Just $ fleeceNameToOpenApiKey name
@@ -1135,6 +1386,7 @@ mkObjectForFields name fieldsInReverse = do
   pure $
     SchemaInfo
       { fleeceName = name
+      , schemaPath = path
       , schemaIsPrimitive = False
       , openApiKey = key
       , openApiNullable = False
@@ -1151,17 +1403,6 @@ mkObjectForFields name fieldsInReverse = do
 fleeceNameToOpenApiKey :: FC.Name -> T.Text
 fleeceNameToOpenApiKey =
   T.pack . FC.nameUnqualified
-
--- TODO this is a hack pending a better solution in json-fleece.
-rewriteSchemaInfo :: SchemaInfo -> SchemaInfo
-rewriteSchemaInfo schemaInfo =
-  case FC.nameUnqualified $ fleeceName schemaInfo of
-    "Int" -> mkPrimitiveSchema "integer" OpenApi.OpenApiInteger
-    "Int64" -> setSchemaInfoFormat "int64" $ mkPrimitiveSchema "integer" OpenApi.OpenApiInteger
-    "Int32" -> setSchemaInfoFormat "int32" $ mkPrimitiveSchema "integer" OpenApi.OpenApiInteger
-    "UTCTime" -> setSchemaInfoFormat "date-time" $ mkPrimitiveSchema "string" OpenApi.OpenApiString
-    "Day" -> setSchemaInfoFormat "date" $ mkPrimitiveSchema "string" OpenApi.OpenApiString
-    _ -> schemaInfo
 
 componentsPrefix :: T.Text
 componentsPrefix =

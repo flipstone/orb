@@ -57,29 +57,29 @@ packages:
 - completed:
     name: json-fleece-aeson
     pantry-tree:
-      sha256: b033b89cb2b953a6243cd653d40739b512aa347956345409d3569f28b4d3da76
-      size: 581
-    sha256: c6984319a1e66edd5b6a18b3610b5bfa95f507870f6885f26cb3751e0b2f7ff7
-    size: 3067241
+      sha256: d687b890f3727930fba309980fdb2b7f099e3c6092006940867c7fed3c19bd64
+      size: 628
+    sha256: d37000c263116c1f30d69dde80ece99f2a0037a5f07a378537cb282c3ac5debf
+    size: 3073901
     subdir: json-fleece-aeson
-    url: https://github.com/flipstone/json-fleece/archive/68e248c9bf1e2033358505d86d1cbc75506777ce.tar.gz
-    version: 0.3.7.2
+    url: https://github.com/flipstone/json-fleece/archive/2064e681d594a603fcbaf2e58105c64ee53156a1.tar.gz
+    version: 0.3.8.0
   original:
     subdir: json-fleece-aeson
-    url: https://github.com/flipstone/json-fleece/archive/68e248c9bf1e2033358505d86d1cbc75506777ce.tar.gz
+    url: https://github.com/flipstone/json-fleece/archive/2064e681d594a603fcbaf2e58105c64ee53156a1.tar.gz
 - completed:
     name: json-fleece-core
     pantry-tree:
-      sha256: 83cbd3f3b1548883235d80473bea1c44170524cde37f799433643632e0571992
-      size: 443
-    sha256: c6984319a1e66edd5b6a18b3610b5bfa95f507870f6885f26cb3751e0b2f7ff7
-    size: 3067241
+      sha256: 5adc2bf8c045e936eeb32d4388ee1dcd44cb4557e078b485c9a7415b98a9387f
+      size: 491
+    sha256: d37000c263116c1f30d69dde80ece99f2a0037a5f07a378537cb282c3ac5debf
+    size: 3073901
     subdir: json-fleece-core
-    url: https://github.com/flipstone/json-fleece/archive/68e248c9bf1e2033358505d86d1cbc75506777ce.tar.gz
-    version: 0.7.1.2
+    url: https://github.com/flipstone/json-fleece/archive/2064e681d594a603fcbaf2e58105c64ee53156a1.tar.gz
+    version: 0.8.0.0
   original:
     subdir: json-fleece-core
-    url: https://github.com/flipstone/json-fleece/archive/68e248c9bf1e2033358505d86d1cbc75506777ce.tar.gz
+    url: https://github.com/flipstone/json-fleece/archive/2064e681d594a603fcbaf2e58105c64ee53156a1.tar.gz
 snapshots:
 - completed:
     sha256: 0d0bb681dd5be9b930c8fc070d717aae757b9aed176ae6047d87624b46406816

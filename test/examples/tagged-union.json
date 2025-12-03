@@ -13,32 +13,55 @@
                 "title": "InternalServerError",
                 "type": "object"
             },
-            "RandomObject": {
-                "properties": {
-                    "bool": {
-                        "type": "boolean"
+            "TaggedUnionResponse": {
+                "discriminator": {
+                    "mapping": {
+                        "bar": "#/components/schemas/TaggedUnionResponse.bar",
+                        "foo": "#/components/schemas/TaggedUnionResponse.foo"
                     },
-                    "text": {
+                    "propertyName": "type"
+                },
+                "oneOf": [
+                    {
+                        "$ref": "#/components/schemas/TaggedUnionResponse.foo"
+                    },
+                    {
+                        "$ref": "#/components/schemas/TaggedUnionResponse.bar"
+                    }
+                ],
+                "title": "TaggedUnionResponse"
+            },
+            "TaggedUnionResponse.bar": {
+                "properties": {
+                    "barField": {
+                        "type": "string"
+                    },
+                    "type": {
                         "type": "string"
                     }
                 },
                 "required": [
-                    "bool",
-                    "text"
+                    "type",
+                    "barField"
                 ],
-                "title": "RandomObject",
+                "title": "TaggedUnionResponse.bar",
                 "type": "object"
             },
-            "UnionResponse": {
-                "oneOf": [
-                    {
-                        "type": "integer"
+            "TaggedUnionResponse.foo": {
+                "properties": {
+                    "fooField": {
+                        "type": "boolean"
                     },
-                    {
-                        "$ref": "#/components/schemas/RandomObject"
+                    "type": {
+                        "type": "string"
                     }
+                },
+                "required": [
+                    "type",
+                    "fooField"
                 ],
-                "title": "UnionResponse"
+                "title": "TaggedUnionResponse.foo",
+                "type": "object"
             }
         }
     },
@@ -48,15 +71,15 @@
     },
     "openapi": "3.0.0",
     "paths": {
-        "/union": {
+        "/tagged-union": {
             "get": {
-                "operationId": "UnionHandler",
+                "operationId": "TaggedUnionHandler",
                 "responses": {
                     "200": {
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/UnionResponse"
+                                    "$ref": "#/components/schemas/TaggedUnionResponse"
                                 }
                             }
                         },

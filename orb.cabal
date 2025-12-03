@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           orb
-version:        0.5.0.2
+version:        0.6.0.0
 description:    Please see the README on GitHub at <https://github.com/flipstone/orb#readme>
 homepage:       https://github.com/flipstone/orb#readme
 bug-reports:    https://github.com/flipstone/orb/issues
@@ -127,6 +127,7 @@ test-suite orb-test
       Fixtures.OpenApiSubset
       Fixtures.SimpleGet
       Fixtures.SimplePost
+      Fixtures.TaggedUnion
       Fixtures.Union
       Handler
       OpenApi

@@ -1,0 +1,8 @@
+[language-server.haskell-language-server]
+command = "docker"
+args = ["compose", "run", "--rm", "-T", "dev", "haskell-language-server-wrapper", "--lsp"]
+
+[language-server.haskell-language-server.config]
+haskell.formattingProvider = "fourmolu"
+haskell.plugin.hlint.globalOn = false
+

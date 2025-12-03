@@ -11,7 +11,7 @@ extra-deps:
   - github: flipstone/shrubbery
     commit: a064ede07e01b753a6eb310fc24d9fd8da1ad826
   - github: flipstone/json-fleece
-    commit: 68e248c9bf1e2033358505d86d1cbc75506777ce
+    commit: 2064e681d594a603fcbaf2e58105c64ee53156a1
     subdirs:
       - json-fleece-aeson
       - json-fleece-core
