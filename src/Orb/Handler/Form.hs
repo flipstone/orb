@@ -42,7 +42,7 @@ insertParamField ::
   Map.Map T.Text (NEL.NonEmpty T.Text)
 insertParamField params (k, v) =
   Map.insertWith
-    (<>)
+    (\new old -> old <> new)
     (TE.decodeUtf8 k)
     (NEL.singleton $ TE.decodeUtf8 v)
     params
@@ -53,7 +53,7 @@ insertFileField ::
   Map.Map T.Text (NEL.NonEmpty (Wai.FileInfo LBS.ByteString))
 insertFileField files (k, v) =
   Map.insertWith
-    (<>)
+    (\new old -> old <> new)
     (TE.decodeUtf8 k)
     (NEL.singleton v)
     files
