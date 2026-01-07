@@ -31,7 +31,6 @@ extra-source-files:
   - src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/swagger-ui-standalone-preset.js
   - src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/swagger-ui.css
   - src/Orb/SwaggerUI/swagger-ui-dist-5.25.2/swagger-ui.js
-  
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package

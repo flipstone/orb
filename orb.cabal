@@ -129,6 +129,7 @@ test-suite orb-test
       Fixtures.SimplePost
       Fixtures.TaggedUnion
       Fixtures.Union
+      Form
       Handler
       OpenApi
       SwaggerUI
