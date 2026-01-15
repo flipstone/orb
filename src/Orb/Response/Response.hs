@@ -45,7 +45,7 @@ data ResponseBody where
   NoSchemaResponseBody ::
     Maybe ContentType -> ResponseBody
   SchemaResponseBody ::
-    (forall schema. FC.Fleece schema => schema body) -> ResponseBody
+    (forall t. FC.Fleece t => FC.Schema t body) -> ResponseBody
   EmptyResponseBody ::
     ResponseBody
 

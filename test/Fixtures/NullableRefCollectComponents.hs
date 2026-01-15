@@ -67,13 +67,13 @@ newtype NullableRefCollectComponentsResponse = NullableRefCollectComponentsRespo
 
 newtype InnerObject = InnerObject {innerField :: Bool}
 
-nullableRefCollectComponentsResponseSchema :: FC.Fleece schema => schema NullableRefCollectComponentsResponse
+nullableRefCollectComponentsResponseSchema :: FC.Fleece t => FC.Schema t NullableRefCollectComponentsResponse
 nullableRefCollectComponentsResponseSchema =
   FC.object $
     FC.constructor NullableRefCollectComponentsResponse
       #+ FC.required "outerField" outerField innerObjectSchema
 
-innerObjectSchema :: FC.Fleece schema => schema InnerObject
+innerObjectSchema :: FC.Fleece t => FC.Schema t InnerObject
 innerObjectSchema =
   FC.object $
     FC.constructor InnerObject

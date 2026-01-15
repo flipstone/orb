@@ -28,7 +28,7 @@ import Fleece.Core qualified as FC
 newtype BadRequestMessage = BadRequestMessage
   {badRequestMessage :: T.Text}
 
-badRequestMessageSchema :: FC.Fleece schema => schema BadRequestMessage
+badRequestMessageSchema :: FC.Fleece t => FC.Schema t BadRequestMessage
 badRequestMessageSchema =
   FC.object $
     FC.constructor BadRequestMessage
@@ -37,7 +37,7 @@ badRequestMessageSchema =
 newtype ConflictMessage = ConflictMessage
   {conflictMessage :: T.Text}
 
-conflictMessageSchema :: FC.Fleece schema => schema ConflictMessage
+conflictMessageSchema :: FC.Fleece t => FC.Schema t ConflictMessage
 conflictMessageSchema =
   FC.object $
     FC.constructor ConflictMessage
@@ -45,7 +45,7 @@ conflictMessageSchema =
 
 data InternalServerError = InternalServerError
 
-internalServerErrorSchema :: FC.Fleece schema => schema InternalServerError
+internalServerErrorSchema :: FC.Fleece t => FC.Schema t InternalServerError
 internalServerErrorSchema =
   FC.object $
     FC.constructor (const InternalServerError)
@@ -56,7 +56,7 @@ data NoContent = NoContent
 newtype NotFoundMessage = NotFoundMessage
   {notFoundMessage :: T.Text}
 
-notFoundMessageSchema :: FC.Fleece schema => schema NotFoundMessage
+notFoundMessageSchema :: FC.Fleece t => FC.Schema t NotFoundMessage
 notFoundMessageSchema =
   FC.object $
     FC.constructor NotFoundMessage
@@ -65,7 +65,7 @@ notFoundMessageSchema =
 newtype ServiceUnavailableError = ServiceUnavailableError
   {serviceUnavailableText :: T.Text}
 
-serviceUnavailableErrorSchema :: FC.Fleece schema => schema ServiceUnavailableError
+serviceUnavailableErrorSchema :: FC.Fleece t => FC.Schema t ServiceUnavailableError
 serviceUnavailableErrorSchema =
   FC.object $
     FC.constructor ServiceUnavailableError
@@ -74,7 +74,7 @@ serviceUnavailableErrorSchema =
 newtype SuccessMessage = SuccessMessage
   {successMessage :: T.Text}
 
-successMessageSchema :: FC.Fleece schema => schema SuccessMessage
+successMessageSchema :: FC.Fleece t => FC.Schema t SuccessMessage
 successMessageSchema =
   FC.object $
     FC.constructor SuccessMessage
@@ -83,7 +83,7 @@ successMessageSchema =
 newtype UnauthorizedMessage = UnauthorizedMessage
   {unauthorizedMessage :: T.Text}
 
-unauthorizedMessageSchema :: FC.Fleece schema => schema UnauthorizedMessage
+unauthorizedMessageSchema :: FC.Fleece t => FC.Schema t UnauthorizedMessage
 unauthorizedMessageSchema =
   FC.object $
     FC.constructor UnauthorizedMessage
@@ -92,7 +92,7 @@ unauthorizedMessageSchema =
 newtype UnprocessableContentMessage = UnprocessableContentMessage
   {unprocessableContentText :: T.Text}
 
-unprocessableContentSchema :: FC.Fleece schema => schema UnprocessableContentMessage
+unprocessableContentSchema :: FC.Fleece t => FC.Schema t UnprocessableContentMessage
 unprocessableContentSchema =
   FC.object $
     FC.constructor UnprocessableContentMessage

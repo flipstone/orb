@@ -57,29 +57,29 @@ packages:
 - completed:
     name: json-fleece-aeson
     pantry-tree:
-      sha256: d687b890f3727930fba309980fdb2b7f099e3c6092006940867c7fed3c19bd64
+      sha256: 311e51d278ac62af3fa97d3ca287d2899cb178c09e6848c2628d96396a11cfb7
       size: 628
-    sha256: d37000c263116c1f30d69dde80ece99f2a0037a5f07a378537cb282c3ac5debf
-    size: 3073901
+    sha256: f18caef414a23f16270c2556fe9baf5963caaf92a93ebf2b20cea03cdd66867a
+    size: 3074757
     subdir: json-fleece-aeson
-    url: https://github.com/flipstone/json-fleece/archive/2064e681d594a603fcbaf2e58105c64ee53156a1.tar.gz
-    version: 0.3.8.0
+    url: https://github.com/flipstone/json-fleece/archive/67ee72cbd712563e1135dfac391537a282ee870d.tar.gz
+    version: 0.4.0.0
   original:
     subdir: json-fleece-aeson
-    url: https://github.com/flipstone/json-fleece/archive/2064e681d594a603fcbaf2e58105c64ee53156a1.tar.gz
+    url: https://github.com/flipstone/json-fleece/archive/67ee72cbd712563e1135dfac391537a282ee870d.tar.gz
 - completed:
     name: json-fleece-core
     pantry-tree:
-      sha256: 5adc2bf8c045e936eeb32d4388ee1dcd44cb4557e078b485c9a7415b98a9387f
+      sha256: 2d318c363da8fb4bcd6b1c0817e7528764857dee5e85d1ec74084ff65bee5685
       size: 491
-    sha256: d37000c263116c1f30d69dde80ece99f2a0037a5f07a378537cb282c3ac5debf
-    size: 3073901
+    sha256: f18caef414a23f16270c2556fe9baf5963caaf92a93ebf2b20cea03cdd66867a
+    size: 3074757
     subdir: json-fleece-core
-    url: https://github.com/flipstone/json-fleece/archive/2064e681d594a603fcbaf2e58105c64ee53156a1.tar.gz
-    version: 0.8.0.0
+    url: https://github.com/flipstone/json-fleece/archive/67ee72cbd712563e1135dfac391537a282ee870d.tar.gz
+    version: 0.9.0.0
   original:
     subdir: json-fleece-core
-    url: https://github.com/flipstone/json-fleece/archive/2064e681d594a603fcbaf2e58105c64ee53156a1.tar.gz
+    url: https://github.com/flipstone/json-fleece/archive/67ee72cbd712563e1135dfac391537a282ee870d.tar.gz
 snapshots:
 - completed:
     sha256: 0d0bb681dd5be9b930c8fc070d717aae757b9aed176ae6047d87624b46406816

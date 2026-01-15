@@ -106,7 +106,7 @@ data NoRequestBody
 data RequestBody body tags where
   SchemaRequestBody ::
     Response.Has422Response tags =>
-    (forall schema. FC.Fleece schema => schema body) ->
+    (forall t. FC.Fleece t => FC.Schema t body) ->
     RequestBody body tags
   RawRequestBody ::
     Response.HasResponseCodeWithType tags "422" err =>
@@ -320,7 +320,7 @@ parseBodyRequestSchema ::
   , HasRequest.HasRequest m
   , MIO.MonadIO m
   ) =>
-  (forall schema. FC.Fleece schema => schema request) ->
+  (forall t. FC.Fleece t => FC.Schema t request) ->
   m (Either (S.TaggedUnion tags) request)
 parseBodyRequestSchema schema = do
   req <- HasRequest.request

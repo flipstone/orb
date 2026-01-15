@@ -44,7 +44,7 @@ newtype SimplePostBody = SimplePostBody
   { simplePostParam :: T.Text
   }
 
-simplePostBodySchema :: FC.Fleece schema => schema SimplePostBody
+simplePostBodySchema :: FC.Fleece t => FC.Schema t SimplePostBody
 simplePostBodySchema =
   FC.object $
     FC.constructor SimplePostBody
