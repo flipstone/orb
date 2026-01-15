@@ -72,7 +72,7 @@ data NullableRefResponse = NullableRefResponse
   , arrayOfNullableField :: [Either FC.Null Bool]
   }
 
-nullableRefResponseSchema :: FC.Fleece schema => schema NullableRefResponse
+nullableRefResponseSchema :: FC.Fleece t => FC.Schema t NullableRefResponse
 nullableRefResponseSchema =
   FC.object $
     FC.constructor NullableRefResponse

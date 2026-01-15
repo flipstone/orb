@@ -375,7 +375,7 @@ by Fleece, and the @Content-Type@ will be set to /application\/json/.
 addResponseSchema ::
   forall tag tags a.
   KnownHTTPStatus tag =>
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder tags ->
   ResponseBodiesBuilder ((tag @= (a, HTTP.ResponseHeaders)) : tags)
 addResponseSchema schema builder =
@@ -1283,7 +1283,7 @@ responseBodies
 -}
 addResponseSchema200 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response200 a : responseCodes)
 addResponseSchema200 =
@@ -1350,7 +1350,7 @@ responseBodies
 -}
 addResponseSchema201 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response201 a : responseCodes)
 addResponseSchema201 =
@@ -1417,7 +1417,7 @@ responseBodies
 -}
 addResponseSchema202 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response202 a : responseCodes)
 addResponseSchema202 =
@@ -1484,7 +1484,7 @@ responseBodies
 -}
 addResponseSchema203 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response203 a : responseCodes)
 addResponseSchema203 =
@@ -1589,7 +1589,7 @@ responseBodies
 -}
 addResponseSchema206 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response206 a : responseCodes)
 addResponseSchema206 =
@@ -1656,7 +1656,7 @@ responseBodies
 -}
 addResponseSchema300 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response300 a : responseCodes)
 addResponseSchema300 =
@@ -1723,7 +1723,7 @@ responseBodies
 -}
 addResponseSchema301 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response301 a : responseCodes)
 addResponseSchema301 =
@@ -1790,7 +1790,7 @@ responseBodies
 -}
 addResponseSchema302 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response302 a : responseCodes)
 addResponseSchema302 =
@@ -1857,7 +1857,7 @@ responseBodies
 -}
 addResponseSchema303 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response303 a : responseCodes)
 addResponseSchema303 =
@@ -1943,7 +1943,7 @@ responseBodies
 -}
 addResponseSchema305 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response305 a : responseCodes)
 addResponseSchema305 =
@@ -2010,7 +2010,7 @@ responseBodies
 -}
 addResponseSchema307 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response307 a : responseCodes)
 addResponseSchema307 =
@@ -2077,7 +2077,7 @@ responseBodies
 -}
 addResponseSchema308 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response308 a : responseCodes)
 addResponseSchema308 =
@@ -2144,7 +2144,7 @@ responseBodies
 -}
 addResponseSchema400 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response400 a : responseCodes)
 addResponseSchema400 =
@@ -2211,7 +2211,7 @@ responseBodies
 -}
 addResponseSchema401 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response401 a : responseCodes)
 addResponseSchema401 =
@@ -2278,7 +2278,7 @@ responseBodies
 -}
 addResponseSchema402 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response402 a : responseCodes)
 addResponseSchema402 =
@@ -2345,7 +2345,7 @@ responseBodies
 -}
 addResponseSchema403 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response403 a : responseCodes)
 addResponseSchema403 =
@@ -2412,7 +2412,7 @@ responseBodies
 -}
 addResponseSchema404 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response404 a : responseCodes)
 addResponseSchema404 =
@@ -2479,7 +2479,7 @@ responseBodies
 -}
 addResponseSchema405 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response405 a : responseCodes)
 addResponseSchema405 =
@@ -2546,7 +2546,7 @@ responseBodies
 -}
 addResponseSchema406 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response406 a : responseCodes)
 addResponseSchema406 =
@@ -2613,7 +2613,7 @@ responseBodies
 -}
 addResponseSchema407 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response407 a : responseCodes)
 addResponseSchema407 =
@@ -2680,7 +2680,7 @@ responseBodies
 -}
 addResponseSchema408 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response408 a : responseCodes)
 addResponseSchema408 =
@@ -2747,7 +2747,7 @@ responseBodies
 -}
 addResponseSchema409 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response409 a : responseCodes)
 addResponseSchema409 =
@@ -2814,7 +2814,7 @@ responseBodies
 -}
 addResponseSchema410 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response410 a : responseCodes)
 addResponseSchema410 =
@@ -2881,7 +2881,7 @@ responseBodies
 -}
 addResponseSchema411 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response411 a : responseCodes)
 addResponseSchema411 =
@@ -2948,7 +2948,7 @@ responseBodies
 -}
 addResponseSchema412 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response412 a : responseCodes)
 addResponseSchema412 =
@@ -3015,7 +3015,7 @@ responseBodies
 -}
 addResponseSchema413 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response413 a : responseCodes)
 addResponseSchema413 =
@@ -3082,7 +3082,7 @@ responseBodies
 -}
 addResponseSchema414 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response414 a : responseCodes)
 addResponseSchema414 =
@@ -3149,7 +3149,7 @@ responseBodies
 -}
 addResponseSchema415 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response415 a : responseCodes)
 addResponseSchema415 =
@@ -3216,7 +3216,7 @@ responseBodies
 -}
 addResponseSchema416 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response416 a : responseCodes)
 addResponseSchema416 =
@@ -3283,7 +3283,7 @@ responseBodies
 -}
 addResponseSchema417 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response417 a : responseCodes)
 addResponseSchema417 =
@@ -3350,7 +3350,7 @@ responseBodies
 -}
 addResponseSchema418 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response418 a : responseCodes)
 addResponseSchema418 =
@@ -3417,7 +3417,7 @@ responseBodies
 -}
 addResponseSchema422 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response422 a : responseCodes)
 addResponseSchema422 =
@@ -3484,7 +3484,7 @@ responseBodies
 -}
 addResponseSchema428 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response428 a : responseCodes)
 addResponseSchema428 =
@@ -3551,7 +3551,7 @@ responseBodies
 -}
 addResponseSchema429 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response429 a : responseCodes)
 addResponseSchema429 =
@@ -3618,7 +3618,7 @@ responseBodies
 -}
 addResponseSchema431 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response431 a : responseCodes)
 addResponseSchema431 =
@@ -3685,7 +3685,7 @@ responseBodies
 -}
 addResponseSchema500 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response500 a : responseCodes)
 addResponseSchema500 =
@@ -3752,7 +3752,7 @@ responseBodies
 -}
 addResponseSchema501 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response501 a : responseCodes)
 addResponseSchema501 =
@@ -3819,7 +3819,7 @@ responseBodies
 -}
 addResponseSchema502 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response502 a : responseCodes)
 addResponseSchema502 =
@@ -3886,7 +3886,7 @@ responseBodies
 -}
 addResponseSchema503 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response503 a : responseCodes)
 addResponseSchema503 =
@@ -3953,7 +3953,7 @@ responseBodies
 -}
 addResponseSchema504 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response504 a : responseCodes)
 addResponseSchema504 =
@@ -4020,7 +4020,7 @@ responseBodies
 -}
 addResponseSchema505 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response505 a : responseCodes)
 addResponseSchema505 =
@@ -4087,7 +4087,7 @@ responseBodies
 -}
 addResponseSchema511 ::
   forall a responseCodes.
-  (forall schema. FC.Fleece schema => schema a) ->
+  (forall t. FC.Fleece t => FC.Schema t a) ->
   ResponseBodiesBuilder responseCodes ->
   ResponseBodiesBuilder (Response511 a : responseCodes)
 addResponseSchema511 =
