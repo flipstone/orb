@@ -4,7 +4,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TypeOperators #-}
 
 module Orb.OpenApi
   ( mkOpenApi
@@ -559,7 +558,7 @@ mkRequestBody ::
   Either OpenApiError (Maybe (OpenApi.Referenced OpenApi.RequestBody, Map.Map T.Text SchemaInfo))
 mkRequestBody handler =
   case Handler.requestBody handler of
-    Handler.SchemaRequestBody (FleeceOpenApi mkErrOrSchemaInfo) -> do
+    Handler.SchemaRequestBody (FC.Schema _ (FleeceOpenApi mkErrOrSchemaInfo)) -> do
       schemaInfo <- mkErrOrSchemaInfo []
 
       let
@@ -687,7 +686,7 @@ mkResponses handler =
       mbSchemaInfo <-
         case responseSchema of
           Response.NoSchemaResponseBody _mbContentType -> pure Nothing
-          Response.SchemaResponseBody (FleeceOpenApi mkInfo) -> fmap Just (mkInfo [])
+          Response.SchemaResponseBody (FC.Schema _ (FleeceOpenApi mkInfo)) -> fmap Just (mkInfo [])
           Response.EmptyResponseBody -> pure Nothing
       let
         mkResponseContent schemaRef =
@@ -833,7 +832,7 @@ data SchemaWithComponents = SchemaWithComponents
   Fleece schema. If an error occurs during construction (e.g. conflicting
   definitions of the same component), an error will be returned.
 -}
-schemaWithComponents :: FleeceOpenApi a -> Either OpenApiError SchemaWithComponents
+schemaWithComponents :: FC.Schema FleeceOpenApi a -> Either OpenApiError SchemaWithComponents
 schemaWithComponents =
   fmap
     ( \schemaInfo ->
@@ -847,6 +846,7 @@ schemaWithComponents =
     )
     . ($ [])
     . unFleeceOpenApi
+    . FC.schemaInterpreter
 
 data PathEntry
   = PathSchema FC.Name
@@ -996,13 +996,13 @@ mkSchemaRef schema =
       OpenApi.Inline . openApiSchema $ schema
 
 mkPrimitiveSchema ::
-  String ->
+  FC.Name ->
   OpenApi.OpenApiType ->
   Path ->
   SchemaInfo
 mkPrimitiveSchema name openApiType path =
   SchemaInfo
-    { fleeceName = FC.unqualifiedName name
+    { fleeceName = name
     , schemaPath = path
     , schemaIsPrimitive = True
     , openApiKey = Nothing
@@ -1036,39 +1036,22 @@ instance FC.Fleece FleeceOpenApi where
   data TaggedUnionMembers FleeceOpenApi _allTags _handledTags
     = TaggedUnionMembers (Path -> FieldInfo -> String -> Either OpenApiError [(T.Text, SchemaInfo)])
 
-  schemaName (FleeceOpenApi mkErrOrSchemaInfo) =
-    -- We might not be able to make a name here because 'mkErrOrSchemaInfo' might
-    -- return an error. 'schemaName' cannot return an error, however, so we are
-    -- forced to reflect the error in the name of the schema. This is not ideal,
-    -- but the error raised by the schema will almost certainly be raised elsewhere
-    -- as part of the OpenApi spec generation, so it will get reported as an error
-    -- elsewhere in addition to in the name of this schema.
-    case mkErrOrSchemaInfo [] of
-      Left err ->
-        let
-          shortErr =
-            takeWhile (/= '\n') (renderOpenApiError err)
-        in
-          FC.unqualifiedName ("Unable to get schema name:" <> shortErr)
-      Right schemaInfo -> fleeceName schemaInfo
+  interpretFormat formatString (FC.Schema _name (FleeceOpenApi mkErrOrSchemaInfo)) =
+    FleeceOpenApi $ fmap (setSchemaInfoFormat (T.pack formatString)) . mkErrOrSchemaInfo
 
-  format formatString (FleeceOpenApi mkErrOrSchemaInfo) =
-    FleeceOpenApi $ \path ->
-      fmap (setSchemaInfoFormat (T.pack formatString)) (mkErrOrSchemaInfo path)
+  interpretNumber name =
+    FleeceOpenApi $ Right . mkPrimitiveSchema name OpenApi.OpenApiNumber
 
-  number =
-    FleeceOpenApi $ Right . mkPrimitiveSchema "number" OpenApi.OpenApiNumber
+  interpretText name =
+    FleeceOpenApi $ Right . mkPrimitiveSchema name OpenApi.OpenApiString
 
-  text =
-    FleeceOpenApi $ Right . mkPrimitiveSchema "text" OpenApi.OpenApiString
+  interpretBoolean name =
+    FleeceOpenApi $ Right . mkPrimitiveSchema name OpenApi.OpenApiBoolean
 
-  boolean =
-    FleeceOpenApi $ Right . mkPrimitiveSchema "boolean" OpenApi.OpenApiBoolean
+  interpretNull name =
+    FleeceOpenApi $ Right . mkPrimitiveSchema name OpenApi.OpenApiNull
 
-  null =
-    FleeceOpenApi $ Right . mkPrimitiveSchema "null" OpenApi.OpenApiNull
-
-  array (FleeceOpenApi mkErrOrItemSchemaInfo) =
+  interpretArray arrayName (FC.Schema _itemName (FleeceOpenApi mkErrOrItemSchemaInfo)) =
     FleeceOpenApi $ \path -> do
       itemSchemaInfo <- mkErrOrItemSchemaInfo path
       components <- collectComponents [itemSchemaInfo]
@@ -1079,7 +1062,7 @@ instance FC.Fleece FleeceOpenApi where
 
       pure $
         SchemaInfo
-          { fleeceName = FC.annotateName (fleeceName itemSchemaInfo) "array"
+          { fleeceName = arrayName
           , schemaPath = path
           , schemaIsPrimitive = False
           , openApiKey = Nothing
@@ -1092,7 +1075,7 @@ instance FC.Fleece FleeceOpenApi where
           , schemaComponents = components
           }
 
-  nullable (FleeceOpenApi mkErrOrSchemaInfo) =
+  interpretNullable _nullableName (FC.Schema _name (FleeceOpenApi mkErrOrSchemaInfo)) =
     FleeceOpenApi $ \path -> do
       schemaInfo <- mkErrOrSchemaInfo path
       let
@@ -1117,7 +1100,7 @@ instance FC.Fleece FleeceOpenApi where
           , schemaComponents = schemaComponents schemaInfo
           }
 
-  required name _accessor (FleeceOpenApi mkErrOrSchemaInfo) =
+  required name _accessor (FC.Schema _schemaName (FleeceOpenApi mkErrOrSchemaInfo)) =
     Field $ \path -> do
       schemaInfo <- mkErrOrSchemaInfo (addFieldToPath name path)
       pure $
@@ -1127,7 +1110,7 @@ instance FC.Fleece FleeceOpenApi where
           , fieldSchemaInfo = schemaInfo
           }
 
-  optional name _accessor (FleeceOpenApi mkErrOrSchemaInfo) =
+  optional name _accessor (FC.Schema _schemaName (FleeceOpenApi mkErrOrSchemaInfo)) =
     Field $ \path -> do
       schemaInfo <- mkErrOrSchemaInfo (addFieldToPath name path)
       pure $
@@ -1143,7 +1126,7 @@ instance FC.Fleece FleeceOpenApi where
   additionalFields _accessor _schema =
     AdditionalFields
 
-  objectNamed name (Object mkErrOrFieldsInReverse) =
+  interpretObjectNamed name (Object mkErrOrFieldsInReverse) =
     FleeceOpenApi $ \path ->
       mkObjectForFields path name =<< mkErrOrFieldsInReverse (addSchemaToPath name path)
 
@@ -1157,7 +1140,7 @@ instance FC.Fleece FleeceOpenApi where
     Object . const . Left . InternalError $
       "Fleece additional fields not currently support for OpenAPI"
 
-  validateNamed name _uncheck _check (FleeceOpenApi mkErrOrSchemaInfo) = do
+  interpretValidateNamed name _uncheck _check (FC.Schema _unvalidatedName (FleeceOpenApi mkErrOrSchemaInfo)) = do
     FleeceOpenApi $ \path -> do
       schemaInfo <- mkErrOrSchemaInfo (addSchemaToPath name path)
 
@@ -1178,10 +1161,10 @@ instance FC.Fleece FleeceOpenApi where
               , openApiKey = Just . fleeceNameToOpenApiKey $ name
               }
 
-  validateAnonymous _uncheck _check (FleeceOpenApi errOrSchemaInfo) = do
+  interpretValidateAnonymous _uncheck _check (FC.Schema _name (FleeceOpenApi errOrSchemaInfo)) = do
     FleeceOpenApi errOrSchemaInfo
 
-  boundedEnumNamed name toText =
+  interpretBoundedEnumNamed name toText =
     let
       enumValues =
         fmap
@@ -1204,7 +1187,7 @@ instance FC.Fleece FleeceOpenApi where
             , schemaComponents = Map.empty
             }
 
-  unionNamed name (UnionMembers mkErrOrMembers) =
+  interpretUnionNamed name (UnionMembers mkErrOrMembers) =
     FleeceOpenApi $ \path -> do
       let
         key = Just $ fleeceNameToOpenApiKey name
@@ -1230,7 +1213,7 @@ instance FC.Fleece FleeceOpenApi where
           , schemaComponents = components
           }
 
-  unionMemberWithIndex _idx (FleeceOpenApi mkErrOrSchemaInfo) =
+  unionMemberWithIndex _idx (FC.Schema _name (FleeceOpenApi mkErrOrSchemaInfo)) =
     UnionMembers $ \path -> do
       schemaInfo <- mkErrOrSchemaInfo path
       pure [schemaInfo]
@@ -1240,7 +1223,7 @@ instance FC.Fleece FleeceOpenApi where
     -- polymorphism
     UnionMembers $ \path -> liftA2 (++) (left path) (right path)
 
-  taggedUnionNamed name tagPropertyString (TaggedUnionMembers mkMembers) =
+  interpretTaggedUnionNamed name tagPropertyString (TaggedUnionMembers mkMembers) =
     FleeceOpenApi $ \path -> do
       let
         tagProperty =
@@ -1250,7 +1233,7 @@ instance FC.Fleece FleeceOpenApi where
           FC.nameUnqualified name <> "."
 
         errOrStringSchema =
-          unFleeceOpenApi FC.text (PathSchema name : path)
+          unFleeceOpenApi (FC.schemaInterpreter FC.text) (PathSchema name : path)
 
         mkTagField tagSchema =
           FieldInfo
@@ -1333,7 +1316,7 @@ instance FC.Fleece FleeceOpenApi where
       -- polymorphism
       pure (left ++ right)
 
-  jsonString (FleeceOpenApi _schemaInfo) =
+  interpretJsonString _schema =
     FleeceOpenApi
       . const
       . Left
@@ -1347,25 +1330,35 @@ instance FC.Fleece FleeceOpenApi where
   -- we have no way to access and call the defaults.
   --
 
-  int = setOpenApiType OpenApi.OpenApiInteger $ FC.boundedIntegralNumberAnonymous
+  interpretInt _name =
+    setOpenApiType OpenApi.OpenApiInteger (FC.schemaInterpreter FC.boundedIntegralNumberAnonymous)
 
-  int8 = setOpenApiType OpenApi.OpenApiInteger $ FC.format "int8" FC.boundedIntegralNumberAnonymous
+  interpretInt8 _name =
+    setOpenApiType OpenApi.OpenApiInteger (FC.schemaInterpreter $ FC.format "int8" FC.boundedIntegralNumberAnonymous)
 
-  int16 = setOpenApiType OpenApi.OpenApiInteger $ FC.format "int16" FC.boundedIntegralNumberAnonymous
+  interpretInt16 _name =
+    setOpenApiType OpenApi.OpenApiInteger (FC.schemaInterpreter $ FC.format "int16" FC.boundedIntegralNumberAnonymous)
 
-  int32 = setOpenApiType OpenApi.OpenApiInteger $ FC.format "int32" FC.boundedIntegralNumberAnonymous
+  interpretInt32 _name =
+    setOpenApiType OpenApi.OpenApiInteger (FC.schemaInterpreter $ FC.format "int32" FC.boundedIntegralNumberAnonymous)
 
-  int64 = setOpenApiType OpenApi.OpenApiInteger $ FC.format "int64" FC.boundedIntegralNumberAnonymous
+  interpretInt64 _name =
+    setOpenApiType OpenApi.OpenApiInteger (FC.schemaInterpreter $ FC.format "int64" FC.boundedIntegralNumberAnonymous)
 
-  word = setOpenApiType OpenApi.OpenApiInteger $ FC.format "word" FC.boundedIntegralNumberAnonymous
+  interpretWord _name =
+    setOpenApiType OpenApi.OpenApiInteger (FC.schemaInterpreter $ FC.format "word" FC.boundedIntegralNumberAnonymous)
 
-  word8 = setOpenApiType OpenApi.OpenApiInteger $ FC.format "word8" FC.boundedIntegralNumberAnonymous
+  interpretWord8 _name =
+    setOpenApiType OpenApi.OpenApiInteger (FC.schemaInterpreter $ FC.format "word8" FC.boundedIntegralNumberAnonymous)
 
-  word16 = setOpenApiType OpenApi.OpenApiInteger $ FC.format "word16" FC.boundedIntegralNumberAnonymous
+  interpretWord16 _name =
+    setOpenApiType OpenApi.OpenApiInteger (FC.schemaInterpreter $ FC.format "word16" FC.boundedIntegralNumberAnonymous)
 
-  word32 = setOpenApiType OpenApi.OpenApiInteger $ FC.format "word32" FC.boundedIntegralNumberAnonymous
+  interpretWord32 _name =
+    setOpenApiType OpenApi.OpenApiInteger (FC.schemaInterpreter $ FC.format "word32" FC.boundedIntegralNumberAnonymous)
 
-  word64 = setOpenApiType OpenApi.OpenApiInteger $ FC.format "word64" FC.boundedIntegralNumberAnonymous
+  interpretWord64 _name =
+    setOpenApiType OpenApi.OpenApiInteger (FC.schemaInterpreter $ FC.format "word64" FC.boundedIntegralNumberAnonymous)
 
 mkObjectForFields ::
   Path ->

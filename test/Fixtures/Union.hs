@@ -57,7 +57,7 @@ type UnionResponses =
 
 type UnionResponse = S.Union [Int, RandomObject]
 
-unionResponseSchema :: FC.Fleece schema => schema UnionResponse
+unionResponseSchema :: FC.Fleece t => FC.Schema t UnionResponse
 unionResponseSchema =
   FC.unionNamed "UnionResponse" $
     FC.unionMember FC.int
@@ -68,7 +68,7 @@ data RandomObject = RandomObject
   , randomText :: T.Text
   }
 
-randomObjectSchema :: FC.Fleece schema => schema RandomObject
+randomObjectSchema :: FC.Fleece t => FC.Schema t RandomObject
 randomObjectSchema =
   FC.object $
     FC.constructor RandomObject

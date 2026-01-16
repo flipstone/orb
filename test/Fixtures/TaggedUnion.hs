@@ -63,7 +63,7 @@ type TaggedUnionResponse =
     , "bar" @= Bar
     ]
 
-unionResponseSchema :: FC.Fleece schema => schema TaggedUnionResponse
+unionResponseSchema :: FC.Fleece t => FC.Schema t TaggedUnionResponse
 unionResponseSchema =
   FC.taggedUnionNamed "TaggedUnionResponse" "type" $
     FC.taggedUnionMember @"foo" fooObjectSchema
@@ -73,7 +73,7 @@ data Foo = Foo
   { fooField :: Bool
   }
 
-fooObjectSchema :: FC.Fleece schema => FC.Object schema Foo Foo
+fooObjectSchema :: FC.Fleece t => FC.Object t Foo Foo
 fooObjectSchema =
   FC.constructor Foo
     #+ FC.required "fooField" fooField FC.boolean
@@ -82,7 +82,7 @@ data Bar = Bar
   { barField :: T.Text
   }
 
-barObjectSchema :: FC.Fleece schema => FC.Object schema Bar Bar
+barObjectSchema :: FC.Fleece t => FC.Object t Bar Bar
 barObjectSchema =
   FC.constructor Bar
     #+ FC.required "barField" barField FC.text
