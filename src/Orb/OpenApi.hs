@@ -1153,12 +1153,20 @@ instance FC.Fleece FleeceOpenApi where
               , openApiKey = Just . fleeceNameToOpenApiKey $ name
               , openApiNullable = False
               , schemaComponents = components
+              , openApiSchema =
+                  (openApiSchema schemaInfo)
+                    { OpenApi._schemaTitle = Just $ fleeceNameToOpenApiKey name
+                    }
               }
         else
           pure $
             schemaInfo
               { fleeceName = name
               , openApiKey = Just . fleeceNameToOpenApiKey $ name
+              , openApiSchema =
+                  (openApiSchema schemaInfo)
+                    { OpenApi._schemaTitle = Just $ fleeceNameToOpenApiKey name
+                    }
               }
 
   interpretValidateAnonymous _uncheck _check (FC.Schema _name (FleeceOpenApi errOrSchemaInfo)) = do
