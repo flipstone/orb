@@ -14,10 +14,12 @@
                 "type": "object"
             },
             "MyBool": {
+                "title": "MyBool",
                 "type": "boolean"
             },
             "MyNullableBool": {
                 "nullable": true,
+                "title": "MyNullableBool",
                 "type": "boolean"
             },
             "NullableRefResponse": {
