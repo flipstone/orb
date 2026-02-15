@@ -1143,6 +1143,12 @@ instance FC.Fleece FleeceOpenApi where
   interpretValidateNamed name _uncheck _check (FC.Schema _unvalidatedName (FleeceOpenApi mkErrOrSchemaInfo)) = do
     FleeceOpenApi $ \path -> do
       schemaInfo <- mkErrOrSchemaInfo (addSchemaToPath name path)
+      let
+        key = Just $ fleeceNameToOpenApiKey name
+        schemaWithTitle =
+          (openApiSchema schemaInfo)
+            { OpenApi._schemaTitle = key
+            }
 
       if schemaIsPrimitive schemaInfo
         then do
@@ -1150,23 +1156,17 @@ instance FC.Fleece FleeceOpenApi where
           pure $
             schemaInfo
               { fleeceName = name
-              , openApiKey = Just . fleeceNameToOpenApiKey $ name
+              , openApiKey = key
               , openApiNullable = False
               , schemaComponents = components
-              , openApiSchema =
-                  (openApiSchema schemaInfo)
-                    { OpenApi._schemaTitle = Just $ fleeceNameToOpenApiKey name
-                    }
+              , openApiSchema = schemaWithTitle
               }
         else
           pure $
             schemaInfo
               { fleeceName = name
-              , openApiKey = Just . fleeceNameToOpenApiKey $ name
-              , openApiSchema =
-                  (openApiSchema schemaInfo)
-                    { OpenApi._schemaTitle = Just $ fleeceNameToOpenApiKey name
-                    }
+              , openApiKey = key
+              , openApiSchema = schemaWithTitle
               }
 
   interpretValidateAnonymous _uncheck _check (FC.Schema _name (FleeceOpenApi errOrSchemaInfo)) = do
