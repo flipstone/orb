@@ -57,29 +57,29 @@ packages:
 - completed:
     name: json-fleece-aeson
     pantry-tree:
-      sha256: b8b35942a6cbdcd7f17481944eb2fc2241abfac881cb96b42e1dcce059023152
+      sha256: 2f639d0b7564d8b18d4e8a6a0f0ebf3147f7f19c7e59b52f975b6ada66e1e5e2
       size: 628
-    sha256: c55a25175e1c1674b90d86adcce15f374c55d5ed81ee5cbcf45375d3df703ccf
-    size: 3074877
+    sha256: c76819e7f52d8a426637868ce29b1d0e6c13040179c70f0ee7a99c4cd611c75e
+    size: 3075170
     subdir: json-fleece-aeson
-    url: https://github.com/flipstone/json-fleece/archive/641631cfc2b4fe7721b6d79b875564c6892ee007.tar.gz
-    version: 0.4.0.0
+    url: https://github.com/flipstone/json-fleece/archive/5ac847504c6c7ece612187ccb7c2bc524c1dd295.tar.gz
+    version: 0.5.0.0
   original:
     subdir: json-fleece-aeson
-    url: https://github.com/flipstone/json-fleece/archive/641631cfc2b4fe7721b6d79b875564c6892ee007.tar.gz
+    url: https://github.com/flipstone/json-fleece/archive/5ac847504c6c7ece612187ccb7c2bc524c1dd295.tar.gz
 - completed:
     name: json-fleece-core
     pantry-tree:
-      sha256: 2d318c363da8fb4bcd6b1c0817e7528764857dee5e85d1ec74084ff65bee5685
+      sha256: 950abc7e1ce07990f836de5f9bfce6970c7d6ba0f38242fa413c036db3aad6e4
       size: 491
-    sha256: c55a25175e1c1674b90d86adcce15f374c55d5ed81ee5cbcf45375d3df703ccf
-    size: 3074877
+    sha256: c76819e7f52d8a426637868ce29b1d0e6c13040179c70f0ee7a99c4cd611c75e
+    size: 3075170
     subdir: json-fleece-core
-    url: https://github.com/flipstone/json-fleece/archive/641631cfc2b4fe7721b6d79b875564c6892ee007.tar.gz
-    version: 0.9.0.0
+    url: https://github.com/flipstone/json-fleece/archive/5ac847504c6c7ece612187ccb7c2bc524c1dd295.tar.gz
+    version: 0.10.0.0
   original:
     subdir: json-fleece-core
-    url: https://github.com/flipstone/json-fleece/archive/641631cfc2b4fe7721b6d79b875564c6892ee007.tar.gz
+    url: https://github.com/flipstone/json-fleece/archive/5ac847504c6c7ece612187ccb7c2bc524c1dd295.tar.gz
 snapshots:
 - completed:
     sha256: 238fa745b64f91184f9aa518fe04bdde6552533d169b0da5256670df83a0f1a9
