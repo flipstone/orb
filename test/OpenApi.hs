@@ -30,6 +30,7 @@ testGroup =
     , test_nullableRefOpenApi
     , test_unionOpenApi
     , test_taggedUnionOpenApi
+    , test_schemaDescriptionsOpenApi
     , test_nullableRefCollectComponentsOpenApi
     ]
 
@@ -123,6 +124,13 @@ test_taggedUnionOpenApi =
     "Generates the correct OpenAPI JSON for a tagged union schema"
     "test/examples/tagged-union.json"
     $ mkTestOpenApi Fixtures.taggedUnionOpenApiRouter "tagged-union"
+
+test_schemaDescriptionsOpenApi :: Tasty.TestTree
+test_schemaDescriptionsOpenApi =
+  mkGoldenTest
+    "Generates the correct schema descriptions."
+    "test/examples/schema-descriptions.json"
+    (mkTestOpenApi Fixtures.schemaDescriptionsOpenApiRouter "schema-descriptions")
 
 test_nullableRefCollectComponentsOpenApi :: Tasty.TestTree
 test_nullableRefCollectComponentsOpenApi =

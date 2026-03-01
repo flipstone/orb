@@ -66,6 +66,7 @@ dependencies:
   - json-fleece-aeson
   - json-fleece-core
   - mtl
+  - non-empty-text
   - openapi3
   - optparse-applicative
   - safe-exceptions

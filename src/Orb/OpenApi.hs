@@ -35,6 +35,7 @@ import Data.Hashable (Hashable)
 import Data.List qualified as List
 import Data.Map.Strict qualified as Map
 import Data.Maybe qualified as Maybe
+import Data.NonEmptyText qualified as NET
 import Data.OpenApi qualified as OpenApi
 import Data.Semialign.Indexed qualified as IAlign
 import Data.Set qualified as Set
@@ -562,7 +563,7 @@ mkRequestBody handler =
       let
         FleeceOpenApi mkErrOrSchemaInfo = FC.schemaInterpreter schema
 
-      schemaInfo <- mkErrOrSchemaInfo []
+      schemaInfo <- applySchemaDescription schema <$> mkErrOrSchemaInfo []
 
       let
         schemaRef =
@@ -690,11 +691,11 @@ mkResponses handler =
         case responseSchema of
           Response.NoSchemaResponseBody _mbContentType ->
             pure Nothing
-          Response.SchemaResponseBody schema ->
+          Response.SchemaResponseBody schema -> do
             let
               FleeceOpenApi mkInfo = FC.schemaInterpreter schema
-            in
-              fmap Just (mkInfo [])
+
+            Just . applySchemaDescription schema <$> mkInfo []
           Response.EmptyResponseBody ->
             pure Nothing
       let
@@ -853,9 +854,7 @@ schemaWithComponents =
                 (schemaComponents schemaInfo)
           }
     )
-    . ($ [])
-    . unFleeceOpenApi
-    . FC.schemaInterpreter
+    . interpretSchemaWithDescription
 
 data PathEntry
   = PathSchema FC.Name
@@ -869,6 +868,36 @@ renderPathEntry pathEntry =
     PathField schemaName field -> FC.nameToString schemaName <> "." <> field
 
 type Path = [PathEntry]
+
+interpretSchemaWithDescriptionAt ::
+  Path ->
+  FC.Schema FleeceOpenApi a ->
+  Either OpenApiError SchemaInfo
+interpretSchemaWithDescriptionAt path schema = do
+  let
+    FleeceOpenApi mk = FC.schemaInterpreter schema
+
+  schemaInfo <- mk path
+  pure (applySchemaDescription schema schemaInfo)
+
+interpretSchemaWithDescription ::
+  FC.Schema FleeceOpenApi a ->
+  Either OpenApiError SchemaInfo
+interpretSchemaWithDescription =
+  interpretSchemaWithDescriptionAt []
+
+applySchemaDescription ::
+  FC.Schema FleeceOpenApi a ->
+  SchemaInfo ->
+  SchemaInfo
+applySchemaDescription schema schemaInfo =
+  schemaInfo
+    { openApiSchema =
+        (openApiSchema schemaInfo)
+          { OpenApi._schemaDescription =
+              NET.toText <$> FC.schemaDescription schema
+          }
+    }
 
 addSchemaToPath :: FC.Name -> Path -> Path
 addSchemaToPath =
@@ -1050,7 +1079,11 @@ instance FC.Fleece FleeceOpenApi where
       let
         FleeceOpenApi mkErrOrSchemaInfo = FC.schemaInterpreter schema
       in
-        fmap (setSchemaInfoFormat (T.pack formatString)) . mkErrOrSchemaInfo
+        fmap
+          ( setSchemaInfoFormat (T.pack formatString)
+              . applySchemaDescription schema
+          )
+          . mkErrOrSchemaInfo
 
   interpretNumber name =
     FleeceOpenApi $ Right . mkPrimitiveSchema name OpenApi.OpenApiNumber
@@ -1069,7 +1102,9 @@ instance FC.Fleece FleeceOpenApi where
       let
         FleeceOpenApi mkErrOrItemSchemaInfo = FC.schemaInterpreter schema
 
-      itemSchemaInfo <- mkErrOrItemSchemaInfo path
+      itemSchemaInfo <-
+        applySchemaDescription schema <$> mkErrOrItemSchemaInfo path
+
       components <- collectComponents [itemSchemaInfo]
 
       let
@@ -1096,7 +1131,7 @@ instance FC.Fleece FleeceOpenApi where
       let
         FleeceOpenApi mkErrOrSchemaInfo = FC.schemaInterpreter schema
 
-      schemaInfo <- mkErrOrSchemaInfo path
+      schemaInfo <- applySchemaDescription schema <$> mkErrOrSchemaInfo path
 
       let
         innerSchemaShouldBeNullable =
@@ -1125,7 +1160,10 @@ instance FC.Fleece FleeceOpenApi where
       let
         FleeceOpenApi mkErrOrSchemaInfo = FC.schemaInterpreter schema
 
-      schemaInfo <- mkErrOrSchemaInfo (addFieldToPath name path)
+      schemaInfo <-
+        applySchemaDescription schema
+          <$> mkErrOrSchemaInfo (addFieldToPath name path)
+
       pure $
         FieldInfo
           { fieldName = T.pack name
@@ -1138,7 +1176,10 @@ instance FC.Fleece FleeceOpenApi where
       let
         FleeceOpenApi mkErrOrSchemaInfo = FC.schemaInterpreter schema
 
-      schemaInfo <- mkErrOrSchemaInfo (addFieldToPath name path)
+      schemaInfo <-
+        applySchemaDescription schema
+          <$> mkErrOrSchemaInfo (addFieldToPath name path)
+
       pure $
         FieldInfo
           { fieldName = T.pack name
@@ -1171,7 +1212,9 @@ instance FC.Fleece FleeceOpenApi where
       let
         FleeceOpenApi mkErrOrSchemaInfo = FC.schemaInterpreter schema
 
-      schemaInfo <- mkErrOrSchemaInfo (addSchemaToPath name path)
+      schemaInfo <-
+        applySchemaDescription schema
+          <$> mkErrOrSchemaInfo (addSchemaToPath name path)
 
       let
         key = Just $ fleeceNameToOpenApiKey name
@@ -1203,7 +1246,7 @@ instance FC.Fleece FleeceOpenApi where
     let
       FleeceOpenApi errOrSchemaInfo = FC.schemaInterpreter schema
     in
-      FleeceOpenApi errOrSchemaInfo
+      FleeceOpenApi (fmap (applySchemaDescription schema) . errOrSchemaInfo)
 
   interpretBoundedEnumNamed name toText =
     let
@@ -1259,7 +1302,7 @@ instance FC.Fleece FleeceOpenApi where
       let
         FleeceOpenApi mkErrOrSchemaInfo = FC.schemaInterpreter schema
 
-      schemaInfo <- mkErrOrSchemaInfo path
+      schemaInfo <- applySchemaDescription schema <$> mkErrOrSchemaInfo path
       pure [schemaInfo]
 
   unionCombine (UnionMembers left) (UnionMembers right) =

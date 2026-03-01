@@ -9,6 +9,7 @@ import Fixtures.NoPermissions as Export
 import Fixtures.NullableRef as Export
 import Fixtures.NullableRefCollectComponents as Export
 import Fixtures.OpenApiSubset as Export
+import Fixtures.SchemaDescriptions as Export
 import Fixtures.SimpleGet as Export
 import Fixtures.SimplePost as Export
 import Fixtures.TaggedUnion as Export
