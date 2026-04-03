@@ -1,0 +1,66 @@
+{
+    "components": {
+        "schemas": {
+            "DescribedObject": {
+                "description": "This is the description for DescribedObject.",
+                "properties": {
+                    "content": {
+                        "description": "This is the description for the content field.",
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "content"
+                ],
+                "title": "DescribedObject",
+                "type": "object"
+            },
+            "InternalServerError": {
+                "properties": {
+                    "internal_server_error": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "internal_server_error"
+                ],
+                "title": "InternalServerError",
+                "type": "object"
+            }
+        }
+    },
+    "info": {
+        "title": "",
+        "version": ""
+    },
+    "openapi": "3.0.0",
+    "paths": {
+        "/schema-descriptions": {
+            "get": {
+                "operationId": "SchemaDescriptionsHandler",
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/DescribedObject"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/InternalServerError"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        }
+    }
+}

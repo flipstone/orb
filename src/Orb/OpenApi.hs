@@ -35,6 +35,7 @@ import Data.Hashable (Hashable)
 import Data.List qualified as List
 import Data.Map.Strict qualified as Map
 import Data.Maybe qualified as Maybe
+import Data.NonEmptyText qualified as NET
 import Data.OpenApi qualified as OpenApi
 import Data.Semialign.Indexed qualified as IAlign
 import Data.Set qualified as Set
@@ -1044,6 +1045,20 @@ instance FC.Fleece FleeceOpenApi where
 
   data TaggedUnionMembers FleeceOpenApi _allTags _handledTags
     = TaggedUnionMembers (Path -> FieldInfo -> String -> Either OpenApiError [(T.Text, SchemaInfo)])
+
+  interpretDescribe net schema =
+    FleeceOpenApi $
+      let
+        FleeceOpenApi mkErrOrSchemaInfo = FC.schemaInterpreter schema
+        describe schemaInfo =
+          schemaInfo
+            { openApiSchema =
+                (openApiSchema schemaInfo)
+                  { OpenApi._schemaDescription = Just $ NET.toText net
+                  }
+            }
+      in
+        fmap describe . mkErrOrSchemaInfo
 
   interpretFormat formatString schema =
     FleeceOpenApi $

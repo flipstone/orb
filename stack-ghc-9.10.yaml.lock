@@ -57,29 +57,29 @@ packages:
 - completed:
     name: json-fleece-aeson
     pantry-tree:
-      sha256: 2f639d0b7564d8b18d4e8a6a0f0ebf3147f7f19c7e59b52f975b6ada66e1e5e2
+      sha256: c1204bd17604272fdcdff26ea9e7b932c3bd311acaad307835a37eb3038566f5
       size: 628
-    sha256: 24b670aff654405c9d9d03029f6d65ee12b6949ced4130bfb27fe9ac806b2143
-    size: 3075834
+    sha256: 5567116b8b6465b52e0b9c2ff23583f854c28e32988a09c5d6d10b10fe2ea289
+    size: 3075860
     subdir: json-fleece-aeson
-    url: https://github.com/flipstone/json-fleece/archive/555a26d2209643a3cc78c442e95264cc84d53d34.tar.gz
+    url: https://github.com/flipstone/json-fleece/archive/161aeaedc699c4bb8e85bfa605d9cf606fb97713.tar.gz
     version: 0.5.0.0
   original:
     subdir: json-fleece-aeson
-    url: https://github.com/flipstone/json-fleece/archive/555a26d2209643a3cc78c442e95264cc84d53d34.tar.gz
+    url: https://github.com/flipstone/json-fleece/archive/161aeaedc699c4bb8e85bfa605d9cf606fb97713.tar.gz
 - completed:
     name: json-fleece-core
     pantry-tree:
-      sha256: 950abc7e1ce07990f836de5f9bfce6970c7d6ba0f38242fa413c036db3aad6e4
+      sha256: 2a4160e5337f7caff2591c32529e8b1b6366c1be335bb53ad64e59e8b986a14e
       size: 491
-    sha256: 24b670aff654405c9d9d03029f6d65ee12b6949ced4130bfb27fe9ac806b2143
-    size: 3075834
+    sha256: 5567116b8b6465b52e0b9c2ff23583f854c28e32988a09c5d6d10b10fe2ea289
+    size: 3075860
     subdir: json-fleece-core
-    url: https://github.com/flipstone/json-fleece/archive/555a26d2209643a3cc78c442e95264cc84d53d34.tar.gz
-    version: 0.10.0.0
+    url: https://github.com/flipstone/json-fleece/archive/161aeaedc699c4bb8e85bfa605d9cf606fb97713.tar.gz
+    version: 0.11.0.0
   original:
     subdir: json-fleece-core
-    url: https://github.com/flipstone/json-fleece/archive/555a26d2209643a3cc78c442e95264cc84d53d34.tar.gz
+    url: https://github.com/flipstone/json-fleece/archive/161aeaedc699c4bb8e85bfa605d9cf606fb97713.tar.gz
 snapshots:
 - completed:
     sha256: 0d0bb681dd5be9b930c8fc070d717aae757b9aed176ae6047d87624b46406816

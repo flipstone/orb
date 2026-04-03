@@ -94,6 +94,7 @@ library
     , json-fleece-aeson
     , json-fleece-core
     , mtl
+    , non-empty-text
     , openapi3
     , optparse-applicative
     , safe-exceptions
@@ -125,6 +126,7 @@ test-suite orb-test
       Fixtures.NullableRef
       Fixtures.NullableRefCollectComponents
       Fixtures.OpenApiSubset
+      Fixtures.SchemaDescriptions
       Fixtures.SimpleGet
       Fixtures.SimplePost
       Fixtures.TaggedUnion
@@ -160,6 +162,7 @@ test-suite orb-test
     , json-fleece-aeson
     , json-fleece-core
     , mtl
+    , non-empty-text
     , openapi3
     , optparse-applicative
     , orb
