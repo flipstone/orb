@@ -26,6 +26,7 @@ testGroup =
     , test_getWithQuery
     , test_getWithHeaders
     , test_getWithCookies
+    , test_getWithPathParams
     , test_openApiSubset
     , test_nullableRefOpenApi
     , test_unionOpenApi
@@ -95,6 +96,13 @@ test_getWithCookies =
     "Generates the correct OpenAPI JSON for a get with header params"
     "test/examples/get-with-cookies.json"
     $ mkTestOpenApi Fixtures.getWithCookiesOpenApiRouter "get-with-cookies"
+
+test_getWithPathParams :: Tasty.TestTree
+test_getWithPathParams =
+  mkGoldenTest
+    "Generates the correct OpenAPI JSON for a get with path params"
+    "test/examples/get-with-path-params.json"
+    $ mkTestOpenApi Fixtures.getWithPathParamsOpenApiRouter "get-with-path-params"
 
 test_openApiSubset :: Tasty.TestTree
 test_openApiSubset =

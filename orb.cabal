@@ -121,6 +121,7 @@ test-suite orb-test
       Fixtures
       Fixtures.GetWithCookies
       Fixtures.GetWithHeaders
+      Fixtures.GetWithPathParams
       Fixtures.GetWithQuery
       Fixtures.NoPermissions
       Fixtures.NullableRef

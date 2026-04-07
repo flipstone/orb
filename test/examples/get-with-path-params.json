@@ -1,0 +1,83 @@
+{
+    "components": {
+        "schemas": {
+            "InternalServerError": {
+                "properties": {
+                    "internal_server_error": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "internal_server_error"
+                ],
+                "title": "InternalServerError",
+                "type": "object"
+            },
+            "SuccessMessage": {
+                "properties": {
+                    "success": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "success"
+                ],
+                "title": "SuccessMessage",
+                "type": "object"
+            }
+        }
+    },
+    "info": {
+        "title": "",
+        "version": ""
+    },
+    "openapi": "3.0.0",
+    "paths": {
+        "/test/{textPathParam}/{int32PathParam}": {
+            "get": {
+                "operationId": "getWithPathParams",
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SuccessMessage"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/InternalServerError"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            },
+            "parameters": [
+                {
+                    "in": "path",
+                    "name": "textPathParam",
+                    "required": true,
+                    "schema": {
+                        "type": "string"
+                    }
+                },
+                {
+                    "in": "path",
+                    "name": "int32PathParam",
+                    "required": true,
+                    "schema": {
+                        "format": "int32",
+                        "type": "integer"
+                    }
+                }
+            ]
+        }
+    }
+}

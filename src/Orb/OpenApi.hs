@@ -755,12 +755,7 @@ mkOpenApiPathParam param =
     { OpenApi._paramName = R.parameterName param
     , OpenApi._paramIn = OpenApi.ParamPath
     , OpenApi._paramRequired = Just True
-    , OpenApi._paramSchema =
-        Just
-          . OpenApi.Inline
-          $ mempty
-            { OpenApi._schemaType = Just OpenApi.OpenApiString
-            }
+    , OpenApi._paramSchema = Just (mkParamSchema param)
     }
 
 mkOpenApiScalarParam ::
