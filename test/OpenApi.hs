@@ -32,6 +32,7 @@ testGroup =
     , test_unionOpenApi
     , test_taggedUnionOpenApi
     , test_nullableRefCollectComponentsOpenApi
+    , test_schemaBoundsOpenApi
     ]
 
 test_openApiUnknownLabel :: Tasty.TestTree
@@ -138,6 +139,13 @@ test_nullableRefCollectComponentsOpenApi =
     "Generates the correct OpenAPI JSON for a nullable schema with an inner object schema"
     "test/examples/nullable-ref-collect-components.json"
     $ mkTestOpenApi Fixtures.nullableRefCollectComponentsOpenApiRouter "nullable-ref-collect-components"
+
+test_schemaBoundsOpenApi :: Tasty.TestTree
+test_schemaBoundsOpenApi =
+  mkGoldenTest
+    "Generates the correct OpenAPI JSON for schemas with bounds"
+    "test/examples/schema-bounds.json"
+    $ mkTestOpenApi Fixtures.schemaBoundsOpenApiRouter "schema-bounds"
 
 mkTestOpenApi :: Orb.OpenApiRouter a -> String -> Either [Orb.OpenApiError] OpenApi.OpenApi
 mkTestOpenApi =

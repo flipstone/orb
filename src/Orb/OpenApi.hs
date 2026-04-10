@@ -1377,6 +1377,90 @@ instance FC.Fleece FleeceOpenApi where
       . InternalError
       $ "Fleece jsonString is not currently implemented for OpenApi"
 
+  interpretMinLength len schema =
+    FleeceOpenApi $
+      let
+        FleeceOpenApi mkErrOrSchemaInfo = FC.schemaInterpreter schema
+        addMinLength schemaInfo =
+          schemaInfo
+            { openApiSchema =
+                (openApiSchema schemaInfo)
+                  { OpenApi._schemaMinLength = Just len
+                  }
+            }
+      in
+        fmap addMinLength . mkErrOrSchemaInfo
+
+  interpretMaxLength len schema =
+    FleeceOpenApi $
+      let
+        FleeceOpenApi mkErrOrSchemaInfo = FC.schemaInterpreter schema
+        addMaxLength schemaInfo =
+          schemaInfo
+            { openApiSchema =
+                (openApiSchema schemaInfo)
+                  { OpenApi._schemaMaxLength = Just len
+                  }
+            }
+      in
+        fmap addMaxLength . mkErrOrSchemaInfo
+
+  interpretMinItems len schema =
+    FleeceOpenApi $
+      let
+        FleeceOpenApi mkErrOrSchemaInfo = FC.schemaInterpreter schema
+        addMinItems schemaInfo =
+          schemaInfo
+            { openApiSchema =
+                (openApiSchema schemaInfo)
+                  { OpenApi._schemaMinItems = Just len
+                  }
+            }
+      in
+        fmap addMinItems . mkErrOrSchemaInfo
+
+  interpretMaxItems len schema =
+    FleeceOpenApi $
+      let
+        FleeceOpenApi mkErrOrSchemaInfo = FC.schemaInterpreter schema
+        addMaxItems schemaInfo =
+          schemaInfo
+            { openApiSchema =
+                (openApiSchema schemaInfo)
+                  { OpenApi._schemaMaxItems = Just len
+                  }
+            }
+      in
+        fmap addMaxItems . mkErrOrSchemaInfo
+
+  interpretMinimum val schema =
+    FleeceOpenApi $
+      let
+        FleeceOpenApi mkErrOrSchemaInfo = FC.schemaInterpreter schema
+        addMinimum schemaInfo =
+          schemaInfo
+            { openApiSchema =
+                (openApiSchema schemaInfo)
+                  { OpenApi._schemaMinimum = Just (fromInteger val)
+                  }
+            }
+      in
+        fmap addMinimum . mkErrOrSchemaInfo
+
+  interpretMaximum val schema =
+    FleeceOpenApi $
+      let
+        FleeceOpenApi mkErrOrSchemaInfo = FC.schemaInterpreter schema
+        addMaximum schemaInfo =
+          schemaInfo
+            { openApiSchema =
+                (openApiSchema schemaInfo)
+                  { OpenApi._schemaMaximum = Just (fromInteger val)
+                  }
+            }
+      in
+        fmap addMaximum . mkErrOrSchemaInfo
+
   --
   -- Default implementations we override to get OpenAPI specific behavior.
   -- Unfortunately this requires that we duplicate the default implementations
