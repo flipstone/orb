@@ -1,0 +1,81 @@
+{
+    "components": {
+        "schemas": {
+            "InternalServerError": {
+                "properties": {
+                    "internal_server_error": {
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "internal_server_error"
+                ],
+                "title": "InternalServerError",
+                "type": "object"
+            },
+            "SchemaBoundsResponse": {
+                "properties": {
+                    "bounded_list": {
+                        "items": {
+                            "type": "string"
+                        },
+                        "maxItems": 50,
+                        "minItems": 1,
+                        "type": "array"
+                    },
+                    "bounded_number": {
+                        "maximum": 1000,
+                        "minimum": 0,
+                        "type": "integer"
+                    },
+                    "bounded_text": {
+                        "maxLength": 100,
+                        "minLength": 1,
+                        "type": "string"
+                    }
+                },
+                "required": [
+                    "bounded_text",
+                    "bounded_list",
+                    "bounded_number"
+                ],
+                "title": "SchemaBoundsResponse",
+                "type": "object"
+            }
+        }
+    },
+    "info": {
+        "title": "",
+        "version": ""
+    },
+    "openapi": "3.0.0",
+    "paths": {
+        "/test/schema_bounds": {
+            "get": {
+                "operationId": "schemaBounds",
+                "responses": {
+                    "200": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/SchemaBoundsResponse"
+                                }
+                            }
+                        },
+                        "description": ""
+                    },
+                    "500": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/InternalServerError"
+                                }
+                            }
+                        },
+                        "description": ""
+                    }
+                }
+            }
+        }
+    }
+}

@@ -127,6 +127,7 @@ test-suite orb-test
       Fixtures.NullableRef
       Fixtures.NullableRefCollectComponents
       Fixtures.OpenApiSubset
+      Fixtures.SchemaBounds
       Fixtures.SchemaDescriptions
       Fixtures.SimpleGet
       Fixtures.SimplePost
