@@ -7,42 +7,42 @@ packages:
 - completed:
     name: beeline-params
     pantry-tree:
-      sha256: 45904abe4737db4c3a8600bb6a2a0900085f58165c03f8e5e1249cbdd04d2bef
-      size: 1069
-    sha256: 24eb20b509eeb14ca9a64d9e9c00cf13b805c178b3a938304f82159cd9d4a6ff
-    size: 34812
+      sha256: d0db931040ec4773c3af456cad1ef600ed35438b23d3a1c7d15c2ad57b194558
+      size: 1210
+    sha256: 225c76196f47339865086c6485e2e387894fd98e22177ac0c25181794aa0021d
+    size: 36266
     subdir: beeline-params
-    url: https://github.com/flipstone/beeline/archive/ad51a5197ba71b44f27fd760c6c241ac67f0a52f.tar.gz
-    version: 0.1.0.1
+    url: https://github.com/flipstone/beeline/archive/0b2536c63089ca6bd8f4872787261f4cabe0be61.tar.gz
+    version: 0.2.0.0
   original:
     subdir: beeline-params
-    url: https://github.com/flipstone/beeline/archive/ad51a5197ba71b44f27fd760c6c241ac67f0a52f.tar.gz
+    url: https://github.com/flipstone/beeline/archive/0b2536c63089ca6bd8f4872787261f4cabe0be61.tar.gz
 - completed:
     name: beeline-routing
     pantry-tree:
-      sha256: 447f2eaffee4cc4d8763c89d1f1c80e4b90e73c6556c644c9949d04508ff3cd2
+      sha256: ac9788a17532bdb3b7e77c7324e8f78f4f65ff12fe8828dfee16960aea2ba246
       size: 1119
-    sha256: 24eb20b509eeb14ca9a64d9e9c00cf13b805c178b3a938304f82159cd9d4a6ff
-    size: 34812
+    sha256: 225c76196f47339865086c6485e2e387894fd98e22177ac0c25181794aa0021d
+    size: 36266
     subdir: beeline-routing
-    url: https://github.com/flipstone/beeline/archive/ad51a5197ba71b44f27fd760c6c241ac67f0a52f.tar.gz
-    version: 0.3.0.1
+    url: https://github.com/flipstone/beeline/archive/0b2536c63089ca6bd8f4872787261f4cabe0be61.tar.gz
+    version: 0.3.0.2
   original:
     subdir: beeline-routing
-    url: https://github.com/flipstone/beeline/archive/ad51a5197ba71b44f27fd760c6c241ac67f0a52f.tar.gz
+    url: https://github.com/flipstone/beeline/archive/0b2536c63089ca6bd8f4872787261f4cabe0be61.tar.gz
 - completed:
     name: beeline-http-client
     pantry-tree:
-      sha256: bf286adfffe7795c07a058a162f112d1fd48f42c4aa72c74e80ac9f8ddd2ed21
+      sha256: f15d423a64227d7bf1b2f8cc32f124eafb4e2af3b436350c551998d21178175e
       size: 725
-    sha256: 24eb20b509eeb14ca9a64d9e9c00cf13b805c178b3a938304f82159cd9d4a6ff
-    size: 34812
+    sha256: 225c76196f47339865086c6485e2e387894fd98e22177ac0c25181794aa0021d
+    size: 36266
     subdir: beeline-http-client
-    url: https://github.com/flipstone/beeline/archive/ad51a5197ba71b44f27fd760c6c241ac67f0a52f.tar.gz
-    version: 0.9.0.1
+    url: https://github.com/flipstone/beeline/archive/0b2536c63089ca6bd8f4872787261f4cabe0be61.tar.gz
+    version: 0.9.0.2
   original:
     subdir: beeline-http-client
-    url: https://github.com/flipstone/beeline/archive/ad51a5197ba71b44f27fd760c6c241ac67f0a52f.tar.gz
+    url: https://github.com/flipstone/beeline/archive/0b2536c63089ca6bd8f4872787261f4cabe0be61.tar.gz
 - completed:
     name: shrubbery
     pantry-tree:
@@ -59,27 +59,52 @@ packages:
     pantry-tree:
       sha256: c1204bd17604272fdcdff26ea9e7b932c3bd311acaad307835a37eb3038566f5
       size: 628
-    sha256: dff5bb600583bd692b2cf6ef0009c83271bcae7a7ac077f0a9d21289b218d86b
-    size: 3084186
+    sha256: 231837e421135133ebee81cb678530eee050303ee40996f2ea459f49bf74c8b0
+    size: 3086219
     subdir: json-fleece-aeson
-    url: https://github.com/flipstone/json-fleece/archive/98790eaf6e422bf8c7caab42a649329aa6bddf2f.tar.gz
+    url: https://github.com/flipstone/json-fleece/archive/d4ba35fbc084036558ee1242b0bec7ad1669720c.tar.gz
     version: 0.5.0.0
   original:
     subdir: json-fleece-aeson
-    url: https://github.com/flipstone/json-fleece/archive/98790eaf6e422bf8c7caab42a649329aa6bddf2f.tar.gz
+    url: https://github.com/flipstone/json-fleece/archive/d4ba35fbc084036558ee1242b0bec7ad1669720c.tar.gz
 - completed:
     name: json-fleece-core
     pantry-tree:
-      sha256: 6ab78e6f40434229a52673305b7e7da17ec4ef41ed86d0221e5ebf7a549653d2
+      sha256: 6932ac19e24bd947d3689b686d17a85066b38ddfbe94f7914d302f66f5646881
       size: 491
-    sha256: dff5bb600583bd692b2cf6ef0009c83271bcae7a7ac077f0a9d21289b218d86b
-    size: 3084186
+    sha256: 231837e421135133ebee81cb678530eee050303ee40996f2ea459f49bf74c8b0
+    size: 3086219
     subdir: json-fleece-core
-    url: https://github.com/flipstone/json-fleece/archive/98790eaf6e422bf8c7caab42a649329aa6bddf2f.tar.gz
+    url: https://github.com/flipstone/json-fleece/archive/d4ba35fbc084036558ee1242b0bec7ad1669720c.tar.gz
     version: 0.11.1.0
   original:
     subdir: json-fleece-core
-    url: https://github.com/flipstone/json-fleece/archive/98790eaf6e422bf8c7caab42a649329aa6bddf2f.tar.gz
+    url: https://github.com/flipstone/json-fleece/archive/d4ba35fbc084036558ee1242b0bec7ad1669720c.tar.gz
+- completed:
+    name: bounded-text
+    pantry-tree:
+      sha256: e98540b1877ae4709420472f83e8fd04b987eaeb914df72bb33b0bbe55debac2
+      size: 2162
+    sha256: 29c500737d8e481fe2e3325fe643a9cafc565ffd06b754bf14219f579d927f5d
+    size: 11885
+    url: https://github.com/flipstone/bounded-text/archive/3ef94eeda5402857423284d0c4e021a8c8032498.tar.gz
+    version: 0.1.2.0
+  original:
+    url: https://github.com/flipstone/bounded-text/archive/3ef94eeda5402857423284d0c4e021a8c8032498.tar.gz
+- completed:
+    hackage: template-haskell-lift-0.1.0.0@sha256:f6cd3ee45b0c68480c400bfca9f08f39e8e87a5eb823f206dbe06ab1923a4f1c,1136
+    pantry-tree:
+      sha256: 56ab994094c839bebb643ce5fc58dfae6269517ebe91f380e259adaf1def08bf
+      size: 243
+  original:
+    hackage: template-haskell-lift-0.1.0.0
+- completed:
+    hackage: template-haskell-quasiquoter-0.1.0.0@sha256:71027c432c0fb1a293d0f2b1d46dd5be42b9703b7c4b2233ea8076bfc6f84aae,1181
+    pantry-tree:
+      sha256: f9f5177a522cc273c001dd5bd749e4f7ed841910c6136711b9b9825bc0bc9c56
+      size: 257
+  original:
+    hackage: template-haskell-quasiquoter-0.1.0.0
 snapshots:
 - completed:
     sha256: 238fa745b64f91184f9aa518fe04bdde6552533d169b0da5256670df83a0f1a9

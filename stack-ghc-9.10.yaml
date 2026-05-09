@@ -3,7 +3,7 @@
 resolver: lts-24.12
 extra-deps:
   - github: flipstone/beeline
-    commit: ad51a5197ba71b44f27fd760c6c241ac67f0a52f
+    commit: 0b2536c63089ca6bd8f4872787261f4cabe0be61
     subdirs:
       - beeline-params
       - beeline-routing
@@ -11,7 +11,11 @@ extra-deps:
   - github: flipstone/shrubbery
     commit: a064ede07e01b753a6eb310fc24d9fd8da1ad826
   - github: flipstone/json-fleece
-    commit: 98790eaf6e422bf8c7caab42a649329aa6bddf2f
+    commit: d4ba35fbc084036558ee1242b0bec7ad1669720c
     subdirs:
       - json-fleece-aeson
       - json-fleece-core
+  - github: flipstone/bounded-text
+    commit: 3ef94eeda5402857423284d0c4e021a8c8032498
+  - template-haskell-lift-0.1.0.0
+  - template-haskell-quasiquoter-0.1.0.0

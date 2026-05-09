@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           orb
-version:        0.7.0.0
+version:        0.7.1.0
 description:    Please see the README on GitHub at <https://github.com/flipstone/orb#readme>
 homepage:       https://github.com/flipstone/orb#readme
 bug-reports:    https://github.com/flipstone/orb/issues
@@ -79,7 +79,7 @@ library
       aeson
     , aeson-pretty
     , base >=4.7 && <5
-    , beeline-params ==0.1.*
+    , beeline-params ==0.2.*
     , beeline-routing ==0.3.*
     , bytestring
     , case-insensitive
@@ -148,7 +148,7 @@ test-suite orb-test
       aeson
     , aeson-pretty
     , base >=4.7 && <5
-    , beeline-params ==0.1.*
+    , beeline-params ==0.2.*
     , beeline-routing
     , bytestring
     , case-insensitive
