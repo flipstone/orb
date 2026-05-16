@@ -4,6 +4,7 @@ services:
     volumes:
       - .:${PROJECT_DIR}
       - flipstone_stack_root:/stack-root
+      - ${GIT_COMMON_DIR:-.gitignore}:${GIT_COMMON_DIR:-/tmp/no-git-common-dir}
     working_dir: ${PROJECT_DIR}
     environment:
       STACK_ROOT: /stack-root

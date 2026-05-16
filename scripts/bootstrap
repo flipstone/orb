@@ -13,4 +13,26 @@ if [ -f .env ]; then
   echo "Skipping creation of .env because it already exists. Remove it if you want to this script to recreate it"
 else
   echo "PROJECT_DIR=$PWD" >> .env
+
+  # Detect git worktrees. When using a worktree, the .git entry is a file
+  # referencing the main repo's .git directory which lives outside the project
+  # directory. We need to mount that directory into Docker containers so that
+  # git commands like `git ls-files` work correctly.
+  GIT_COMMON_DIR_RAW="$(git rev-parse --git-common-dir)"
+
+  if [ "$GIT_COMMON_DIR_RAW" != ".git" ]; then
+    GIT_COMMON_DIR="$(readlink --canonicalize "$GIT_COMMON_DIR_RAW")"
+    echo "GIT_COMMON_DIR=$GIT_COMMON_DIR" >> .env
+    echo "Detected git worktree. Main git dir: $GIT_COMMON_DIR"
+    MAIN_PROJECT_DIR="$(dirname "$GIT_COMMON_DIR")"
+
+    # Copy compose.override.yaml from the main project directory if one exists
+    # there but not here, so the worktree inherits the same local overrides.
+    if [ ! -f compose.override.yaml ] && [ -f "$MAIN_PROJECT_DIR/compose.override.yaml" ]; then
+      cp "$MAIN_PROJECT_DIR/compose.override.yaml" compose.override.yaml
+      echo "Copied compose.override.yaml from main project dir: $MAIN_PROJECT_DIR"
+    fi
+  else
+    echo "GIT_COMMON_DIR=" >> .env
+  fi
 fi

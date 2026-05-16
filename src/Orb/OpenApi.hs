@@ -42,7 +42,6 @@ import Data.Set qualified as Set
 import Data.Text qualified as T
 import Data.These qualified as These
 import Fleece.Core qualified as FC
-import GHC.TypeLits (symbolVal)
 import Network.HTTP.Media.MediaType qualified as MediaType
 import Network.HTTP.Types qualified as HTTPTypes
 
@@ -1038,7 +1037,7 @@ instance FC.Fleece FleeceOpenApi where
   data UnionMembers FleeceOpenApi _allTypes _handledTypes
     = UnionMembers (Path -> Either OpenApiError [SchemaInfo])
 
-  data TaggedUnionMembers FleeceOpenApi _allTags _handledTags
+  data TaggedUnionMembers FleeceOpenApi _adt _allTags _handledTags
     = TaggedUnionMembers (Path -> FieldInfo -> String -> Either OpenApiError [(T.Text, SchemaInfo)])
 
   interpretDescribe net schema =
@@ -1343,12 +1342,9 @@ instance FC.Fleece FleeceOpenApi where
           , schemaComponents = components
           }
 
-  taggedUnionMemberWithTag tag (Object mkErrOrFieldsInReverse) =
+  taggedUnionMemberWithTag _tag tagValue (Object mkErrOrFieldsInReverse) =
     TaggedUnionMembers $ \path tagField memberKeyPrefix -> do
       let
-        tagValue =
-          symbolVal tag
-
         memberName =
           FC.unqualifiedName (memberKeyPrefix <> tagValue)
 

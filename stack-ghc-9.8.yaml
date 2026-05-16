@@ -9,9 +9,9 @@ extra-deps:
       - beeline-routing
       - beeline-http-client
   - github: flipstone/shrubbery
-    commit: a064ede07e01b753a6eb310fc24d9fd8da1ad826
+    commit: 6785a015e392edc197ccf70501b8e19a73605e6d
   - github: flipstone/json-fleece
-    commit: d4ba35fbc084036558ee1242b0bec7ad1669720c
+    commit: fbe839c005be4f7c9a33cc312b89ca401ef05d85
     subdirs:
       - json-fleece-aeson
       - json-fleece-core
