@@ -79,7 +79,7 @@ library
       aeson
     , aeson-pretty
     , base >=4.7 && <5
-    , beeline-params ==0.2.*
+    , beeline-params >=0.2 && <0.4
     , beeline-routing ==0.3.*
     , bytestring
     , case-insensitive
@@ -148,7 +148,7 @@ test-suite orb-test
       aeson
     , aeson-pretty
     , base >=4.7 && <5
-    , beeline-params ==0.2.*
+    , beeline-params >=0.2 && <0.4
     , beeline-routing
     , bytestring
     , case-insensitive
