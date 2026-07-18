@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -30,7 +31,11 @@ import Data.Align qualified as Align
 import Data.Bifunctor qualified as Bifunctor
 import Data.ByteString.Char8 qualified as BS8
 import Data.DList qualified as DList
+#if MIN_VERSION_openapi3(3,2,5)
+import Data.HashMap.Strict.InsOrd.Compat qualified as IOHM
+#else
 import Data.HashMap.Strict.InsOrd qualified as IOHM
+#endif
 import Data.Hashable (Hashable)
 import Data.List qualified as List
 import Data.Map.Strict qualified as Map
