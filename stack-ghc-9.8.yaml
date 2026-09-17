@@ -3,7 +3,7 @@
 resolver: lts-23.28
 extra-deps:
   - github: flipstone/beeline
-    commit: e31206f52fec7e96c15de9a2bab9ef1876db137b
+    commit: 5108474e7313535ff35002e14ef78f98f001415c
     subdirs:
       - beeline-params
       - beeline-routing
@@ -11,7 +11,7 @@ extra-deps:
   - github: flipstone/shrubbery
     commit: a064ede07e01b753a6eb310fc24d9fd8da1ad826
   - github: flipstone/json-fleece
-    commit: 77813eac694f937b6e013230825f03aba224f866
+    commit: 7f8b1dcb072be0939602754984110900e91dcdb8
     subdirs:
       - json-fleece-aeson
       - json-fleece-core
