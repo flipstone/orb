@@ -21,12 +21,12 @@ data TestDispatchEnv = TestDispatchEnv
 newtype TestDispatchM a
   = TestDispatchM (Reader.ReaderT TestDispatchEnv IO a)
   deriving
-    ( Functor
-    , Applicative
-    , Monad
+    ( Applicative
+    , Functor
     , MIO.MonadIO
-    , Safe.MonadThrow
+    , Monad
     , Safe.MonadCatch
+    , Safe.MonadThrow
     )
 
 instance Orb.HasRequest TestDispatchM where

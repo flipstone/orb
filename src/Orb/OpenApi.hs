@@ -265,7 +265,7 @@ defaultOpenApiOptions =
 
 newtype OpenApiGen a
   = OpenApiGen (Reader.ReaderT OpenApiOptions (Either [OpenApiError]) a)
-  deriving newtype (Functor, Applicative, Monad)
+  deriving newtype (Applicative, Functor, Monad)
 
 failOpenApiGenOne :: OpenApiError -> OpenApiGen a
 failOpenApiGenOne =
