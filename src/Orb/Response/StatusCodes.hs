@@ -4272,9 +4272,7 @@ any function returning them lines up exactly with the response codes in the
 @since 0.1.0
 -}
 type ReturnType returnType index m responseCodes code =
-  ( (returnType, HTTP.ResponseHeaders) ~ S.TagType code responseCodes
-  , index ~ S.TagIndex code responseCodes
-  , (returnType, HTTP.ResponseHeaders) ~ S.TypeAtIndex index (S.TaggedTypes responseCodes)
+  ( S.LookupTag code responseCodes ~ '(index, (returnType, HTTP.ResponseHeaders))
   , KnownNat index
   , Applicative m
   ) =>

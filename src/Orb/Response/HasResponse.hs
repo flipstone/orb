@@ -2,6 +2,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ExplicitNamespaces #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TypeOperators #-}
 
 module Orb.Response.HasResponse
@@ -16,7 +17,8 @@ module Orb.Response.HasResponse
   )
 where
 
-import GHC.TypeLits (KnownNat)
+import Data.Kind (Type)
+import GHC.TypeLits (KnownNat, Nat)
 import Network.HTTP.Types qualified as HTTPTypes
 import Shrubbery qualified as S
 
@@ -44,10 +46,13 @@ type Has500Response tags =
   HasResponseCodeWithType tags "500" Schemas.InternalServerError
 
 type HasResponseCodeWithType tags statusCode responseType =
-  ( KnownNat (S.TagIndex statusCode tags)
-  , S.TagType statusCode tags ~ (responseType, HTTPTypes.ResponseHeaders)
-  , S.TypeAtIndex
-      (S.TagIndex statusCode tags)
-      (S.TaggedTypes tags)
-      ~ (responseType, HTTPTypes.ResponseHeaders)
+  ( KnownNat (TagIndex statusCode tags)
+  , S.LookupTag statusCode tags
+      ~ '(TagIndex statusCode tags, (responseType, HTTPTypes.ResponseHeaders))
   )
+
+type TagIndex statusCode tags =
+  IndexOf (S.LookupTag statusCode tags)
+
+type family IndexOf (found :: (Nat, Type)) :: Nat where
+  IndexOf '(index, _) = index

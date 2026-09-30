@@ -47,9 +47,7 @@ instance AddResponseHeaderBranches allResponseCodes '[] where
 
 instance
   ( AddResponseHeaderBranches allResponseCodes someResponseCodes
-  , (returnType, HTTP.ResponseHeaders) ~ S.TagType code allResponseCodes
-  , index ~ S.TagIndex code allResponseCodes
-  , (returnType, HTTP.ResponseHeaders) ~ S.TypeAtIndex index (S.TaggedTypes allResponseCodes)
+  , S.LookupTag code allResponseCodes ~ '(index, (returnType, HTTP.ResponseHeaders))
   , KnownNat index
   ) =>
   AddResponseHeaderBranches
