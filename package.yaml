@@ -71,7 +71,7 @@ dependencies:
   - optparse-applicative
   - safe-exceptions
   - semialign
-  - shrubbery
+  - shrubbery >= 0.3 && < 0.4
   - these
   - text
   - unordered-containers
