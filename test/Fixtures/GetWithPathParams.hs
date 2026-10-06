@@ -41,25 +41,25 @@ instance Orb.HasHandler GetWithPathParams where
   routeHandler = handler
 
 type TestResponses =
-  [ Orb.Response200 Orb.SuccessMessage
-  , Orb.Response500 Orb.InternalServerError
+  [ Orb.Response "200" Orb.SuccessMessage
+  , Orb.Response "500" Orb.InternalServerError
   ]
 
 handler :: Orb.Handler GetWithPathParams
 handler =
   Orb.Handler
     { Orb.handlerId = "getWithPathParams"
-    , Orb.requestBody = Orb.EmptyRequestBody
-    , Orb.requestQuery = Orb.EmptyRequestQuery
-    , Orb.requestHeaders = Orb.EmptyRequestHeaders
+    , Orb.requestBody = Orb.emptyRequestBody
+    , Orb.requestQuery = Orb.emptyRequestQuery
+    , Orb.requestHeaders = Orb.emptyRequestHeaders
     , Orb.handlerResponseBodies =
         Orb.responseBodies
-          . Orb.addResponseSchema200 Orb.successMessageSchema
-          . Orb.addResponseSchema500 Orb.internalServerErrorSchema
+          . Orb.addResponseSchema Orb.status200 Orb.successMessageSchema
+          . Orb.addResponseSchema Orb.status500 Orb.internalServerErrorSchema
           $ Orb.noResponseBodies
     , Orb.mkPermissionAction =
         \_request -> NoPermissions
     , Orb.handleRequest =
         \_request () ->
-          Orb.return200 (Orb.SuccessMessage "getWithPathParams")
+          Orb.returnResponse Orb.status200 (Orb.SuccessMessage "getWithPathParams")
     }

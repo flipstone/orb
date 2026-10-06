@@ -33,19 +33,20 @@ instance Orb.HasHandler NullableRef where
   routeHandler =
     Orb.Handler
       { Orb.handlerId = "NullableRefHandler"
-      , Orb.requestBody = Orb.EmptyRequestBody
-      , Orb.requestQuery = Orb.EmptyRequestQuery
-      , Orb.requestHeaders = Orb.EmptyRequestHeaders
+      , Orb.requestBody = Orb.emptyRequestBody
+      , Orb.requestQuery = Orb.emptyRequestQuery
+      , Orb.requestHeaders = Orb.emptyRequestHeaders
       , Orb.handlerResponseBodies =
           Orb.responseBodies
-            . Orb.addResponseSchema200 (FC.nullable nullableRefResponseSchema)
-            . Orb.addResponseSchema500 Orb.internalServerErrorSchema
+            . Orb.addResponseSchema Orb.status200 (FC.nullable nullableRefResponseSchema)
+            . Orb.addResponseSchema Orb.status500 Orb.internalServerErrorSchema
             $ Orb.noResponseBodies
       , Orb.mkPermissionAction =
           \_request -> NoPermissions
       , Orb.handleRequest =
           \_request () ->
-            Orb.return200
+            Orb.returnResponse
+              Orb.status200
               ( Right
                   NullableRefResponse
                     { boolField = False
@@ -59,8 +60,8 @@ instance Orb.HasHandler NullableRef where
       }
 
 type NullableRefResponses =
-  [ Orb.Response200 (Either FC.Null NullableRefResponse)
-  , Orb.Response500 Orb.InternalServerError
+  [ Orb.Response "200" (Either FC.Null NullableRefResponse)
+  , Orb.Response "500" Orb.InternalServerError
   ]
 
 data NullableRefResponse = NullableRefResponse

@@ -35,9 +35,9 @@ instance Orb.HasHandler SimplePost where
   routeHandler = handler
 
 type Responses =
-  [ Orb.Response200 Orb.SuccessMessage
-  , Orb.Response422 Orb.UnprocessableContentMessage
-  , Orb.Response500 Orb.InternalServerError
+  [ Orb.Response "200" Orb.SuccessMessage
+  , Orb.Response "422" Orb.UnprocessableContentMessage
+  , Orb.Response "500" Orb.InternalServerError
   ]
 
 newtype SimplePostBody = SimplePostBody
@@ -54,20 +54,20 @@ handler :: Orb.Handler SimplePost
 handler =
   Orb.Handler
     { Orb.handlerId = "simplePost"
-    , Orb.requestBody = Orb.SchemaRequestBody simplePostBodySchema
-    , Orb.requestQuery = Orb.EmptyRequestQuery
-    , Orb.requestHeaders = Orb.EmptyRequestHeaders
+    , Orb.requestBody = Orb.schemaRequestBody simplePostBodySchema
+    , Orb.requestQuery = Orb.emptyRequestQuery
+    , Orb.requestHeaders = Orb.emptyRequestHeaders
     , Orb.handlerResponseBodies =
         Orb.responseBodies
-          . Orb.addResponseSchema200 Orb.successMessageSchema
-          . Orb.addResponseSchema422 Orb.unprocessableContentSchema
-          . Orb.addResponseSchema500 Orb.internalServerErrorSchema
+          . Orb.addResponseSchema Orb.status200 Orb.successMessageSchema
+          . Orb.addResponseSchema Orb.status422 Orb.unprocessableContentSchema
+          . Orb.addResponseSchema Orb.status500 Orb.internalServerErrorSchema
           $ Orb.noResponseBodies
     , Orb.mkPermissionAction =
         \_request -> NoPermissions
     , Orb.handleRequest =
         \request () ->
-          Orb.return200
+          Orb.returnResponse Orb.status200
             . Orb.SuccessMessage
             . simplePostParam
             . Orb.reqBody

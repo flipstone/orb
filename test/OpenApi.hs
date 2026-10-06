@@ -21,6 +21,7 @@ testGroup =
     "OpenApi"
     [ test_openApiUnknownLabel
     , test_rejectsSchemaNamesWithUnallowedCharacters
+    , test_rejectsDuplicateResponseStatuses
     , test_simpleGet
     , test_simplePost
     , test_getWithQuery
@@ -33,6 +34,8 @@ testGroup =
     , test_taggedUnionOpenApi
     , test_nullableRefCollectComponentsOpenApi
     , test_schemaBoundsOpenApi
+    , test_customStatusCodeOpenApi
+    , test_customBodyErrorOpenApi
     ]
 
 test_openApiUnknownLabel :: Tasty.TestTree
@@ -62,6 +65,15 @@ test_rejectsSchemaNamesWithUnallowedCharacters =
                 , "Invalid Schema Name: \"SuccessMessage\" only the following characters are allowed, \"\".\n\
                   \  - Found at: Schema <<toplevel>>\n"
                 ]
+
+test_rejectsDuplicateResponseStatuses :: Tasty.TestTree
+test_rejectsDuplicateResponseStatuses =
+  TastyHH.testProperty "Rejects handlers with more than one response for a status" . HH.withTests 1 . HH.property $
+    case mkTestOpenApi Fixtures.duplicateStatusOpenApiRouter "duplicate-status" of
+      Right _ -> fail "Should not have returned an OpenApi for duplicate response statuses"
+      Left errs ->
+        fmap Orb.renderOpenApiError errs
+          === ["Handler duplicateStatus declares more than one response for HTTP status 200, but OpenAPI allows only one response per status."]
 
 test_simpleGet :: Tasty.TestTree
 test_simpleGet =
@@ -146,6 +158,20 @@ test_schemaBoundsOpenApi =
     "Generates the correct OpenAPI JSON for schemas with bounds"
     "test/examples/schema-bounds.json"
     $ mkTestOpenApi Fixtures.schemaBoundsOpenApiRouter "schema-bounds"
+
+test_customStatusCodeOpenApi :: Tasty.TestTree
+test_customStatusCodeOpenApi =
+  mkGoldenTest
+    "Generates the correct OpenAPI JSON for a custom status code"
+    "test/examples/custom-status-code.json"
+    $ mkTestOpenApi Fixtures.customStatusCodeOpenApiRouter "custom-status-code"
+
+test_customBodyErrorOpenApi :: Tasty.TestTree
+test_customBodyErrorOpenApi =
+  mkGoldenTest
+    "Generates the correct OpenAPI JSON for a schema body with a custom error"
+    "test/examples/custom-body-error.json"
+    $ mkTestOpenApi Fixtures.customBodyErrorOpenApiRouter "custom-body-error"
 
 mkTestOpenApi :: Orb.OpenApiRouter a -> String -> Either [Orb.OpenApiError] OpenApi.OpenApi
 mkTestOpenApi =

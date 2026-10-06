@@ -34,8 +34,8 @@ instance Orb.HasHandler SchemaBounds where
   routeHandler = handler
 
 type Responses =
-  [ Orb.Response200 SchemaBoundsResponse
-  , Orb.Response500 Orb.InternalServerError
+  [ Orb.Response "200" SchemaBoundsResponse
+  , Orb.Response "500" Orb.InternalServerError
   ]
 
 data SchemaBoundsResponse = SchemaBoundsResponse
@@ -56,19 +56,20 @@ handler :: Orb.Handler SchemaBounds
 handler =
   Orb.Handler
     { Orb.handlerId = "schemaBounds"
-    , Orb.requestBody = Orb.EmptyRequestBody
-    , Orb.requestQuery = Orb.EmptyRequestQuery
-    , Orb.requestHeaders = Orb.EmptyRequestHeaders
+    , Orb.requestBody = Orb.emptyRequestBody
+    , Orb.requestQuery = Orb.emptyRequestQuery
+    , Orb.requestHeaders = Orb.emptyRequestHeaders
     , Orb.handlerResponseBodies =
         Orb.responseBodies
-          . Orb.addResponseSchema200 schemaBoundsResponseSchema
-          . Orb.addResponseSchema500 Orb.internalServerErrorSchema
+          . Orb.addResponseSchema Orb.status200 schemaBoundsResponseSchema
+          . Orb.addResponseSchema Orb.status500 Orb.internalServerErrorSchema
           $ Orb.noResponseBodies
     , Orb.mkPermissionAction =
         \_request -> NoPermissions
     , Orb.handleRequest =
         \_request () ->
-          Orb.return200
+          Orb.returnResponse
+            Orb.status200
             SchemaBoundsResponse
               { boundedTextField = "hello"
               , boundedListField = ["item"]

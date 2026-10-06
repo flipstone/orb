@@ -50,22 +50,22 @@ instance Orb.HasHandler SchemaDescriptions where
   routeHandler =
     Orb.Handler
       { Orb.handlerId = "SchemaDescriptionsHandler"
-      , Orb.requestBody = Orb.EmptyRequestBody
-      , Orb.requestQuery = Orb.EmptyRequestQuery
-      , Orb.requestHeaders = Orb.EmptyRequestHeaders
+      , Orb.requestBody = Orb.emptyRequestBody
+      , Orb.requestQuery = Orb.emptyRequestQuery
+      , Orb.requestHeaders = Orb.emptyRequestHeaders
       , Orb.handlerResponseBodies =
           Orb.responseBodies
-            . Orb.addResponseSchema200 describedObjectSchema
-            . Orb.addResponseSchema500 Orb.internalServerErrorSchema
+            . Orb.addResponseSchema Orb.status200 describedObjectSchema
+            . Orb.addResponseSchema Orb.status500 Orb.internalServerErrorSchema
             $ Orb.noResponseBodies
       , Orb.mkPermissionAction =
           \_request -> NoPermissions
       , Orb.handleRequest =
           \_request () ->
-            Orb.return200 . DescribedObject $ T.pack "Described content."
+            Orb.returnResponse Orb.status200 . DescribedObject $ T.pack "Described content."
       }
 
 type SchemaDescriptionsResponses =
-  [ Orb.Response200 DescribedObject
-  , Orb.Response500 Orb.InternalServerError
+  [ Orb.Response "200" DescribedObject
+  , Orb.Response "500" Orb.InternalServerError
   ]

@@ -35,24 +35,24 @@ instance Orb.HasHandler Union where
   routeHandler =
     Orb.Handler
       { Orb.handlerId = "UnionHandler"
-      , Orb.requestBody = Orb.EmptyRequestBody
-      , Orb.requestQuery = Orb.EmptyRequestQuery
-      , Orb.requestHeaders = Orb.EmptyRequestHeaders
+      , Orb.requestBody = Orb.emptyRequestBody
+      , Orb.requestQuery = Orb.emptyRequestQuery
+      , Orb.requestHeaders = Orb.emptyRequestHeaders
       , Orb.handlerResponseBodies =
           Orb.responseBodies
-            . Orb.addResponseSchema200 unionResponseSchema
-            . Orb.addResponseSchema500 Orb.internalServerErrorSchema
+            . Orb.addResponseSchema Orb.status200 unionResponseSchema
+            . Orb.addResponseSchema Orb.status500 Orb.internalServerErrorSchema
             $ Orb.noResponseBodies
       , Orb.mkPermissionAction =
           \_request -> NoPermissions
       , Orb.handleRequest =
           \_request () ->
-            Orb.return200 (S.unify @Int 42)
+            Orb.returnResponse Orb.status200 (S.unify @Int 42)
       }
 
 type UnionResponses =
-  [ Orb.Response200 UnionResponse
-  , Orb.Response500 Orb.InternalServerError
+  [ Orb.Response "200" UnionResponse
+  , Orb.Response "500" Orb.InternalServerError
   ]
 
 type UnionResponse = S.Union [Int, RandomObject]
