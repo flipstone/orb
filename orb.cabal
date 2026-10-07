@@ -121,6 +121,7 @@ test-suite orb-test
       Fixtures
       Fixtures.CustomBodyError
       Fixtures.CustomStatusCode
+      Fixtures.DeferredBody
       Fixtures.DuplicateStatus
       Fixtures.GetWithCookies
       Fixtures.GetWithHeaders
@@ -130,6 +131,7 @@ test-suite orb-test
       Fixtures.NullableRef
       Fixtures.NullableRefCollectComponents
       Fixtures.OpenApiSubset
+      Fixtures.PermissionReadsBody
       Fixtures.SchemaBounds
       Fixtures.SchemaDescriptions
       Fixtures.SimpleGet

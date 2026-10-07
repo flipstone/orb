@@ -569,10 +569,20 @@ mkPathItem method pathInfo operation =
 mkRequestBody ::
   Handler.Handler route ->
   Either OpenApiError (Maybe (OpenApi.Referenced OpenApi.RequestBody, Map.Map T.Text SchemaInfo))
-mkRequestBody handler =
-  case Handler.requestBodySchema (Handler.requestBody handler) of
-    Nothing -> Right Nothing
-    Just schema -> mkRequestBodyForSchema schema
+mkRequestBody =
+  mkRequestBodyFor . Handler.requestBody
+
+mkRequestBodyFor ::
+  Handler.RequestBody body tags ->
+  Either OpenApiError (Maybe (OpenApi.Referenced OpenApi.RequestBody, Map.Map T.Text SchemaInfo))
+mkRequestBodyFor requestBody =
+  case requestBody of
+    Handler.RequestBody mbSchema _parser ->
+      case mbSchema of
+        Nothing -> Right Nothing
+        Just schema -> mkRequestBodyForSchema schema
+    Handler.Deferred deferred ->
+      mkRequestBodyFor deferred
 
 mkRequestBodyForSchema ::
   FC.Schema FleeceOpenApi a ->

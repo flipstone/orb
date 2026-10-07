@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
@@ -12,6 +13,7 @@
 module Orb.Handler.Handler
   ( Handler (..)
   , HandlerRequest (..)
+  , PermissionRequest (..)
   , runHandler
   , HasHandler (..)
   , NoRequestBody (..)
@@ -23,6 +25,8 @@ module Orb.Handler.Handler
   , formDataRequestBody
   , formDataRequestBodyWith
   , emptyRequestBody
+  , BodyHandle
+  , decodeBody
   , NoRequestQuery (..)
   , RequestQuery (..)
   , schemaRequestQuery
@@ -38,6 +42,7 @@ module Orb.Handler.Handler
 where
 
 import Beeline.Params qualified as BP
+import Control.Concurrent.MVar qualified as MVar
 import Control.Exception.Safe qualified as Safe
 import Control.Monad.IO.Class qualified as MIO
 import Data.ByteString.Lazy qualified as LBS
@@ -65,6 +70,13 @@ data HandlerRequest route = HandlerRequest
   , reqHeaders :: HandlerRequestHeaders route
   }
 
+data PermissionRequest route = PermissionRequest
+  { permissionRequestRoute :: route
+  , permissionRequestBody :: BodyHandle (S.TaggedUnion (HandlerResponses route)) (HandlerRequestBody route)
+  , permissionRequestQuery :: HandlerRequestQuery route
+  , permissionRequestHeaders :: HandlerRequestHeaders route
+  }
+
 data Handler route = Handler
   { handlerId :: String
   , requestBody :: RequestBody (HandlerRequestBody route) (HandlerResponses route)
@@ -72,7 +84,7 @@ data Handler route = Handler
   , requestQuery :: RequestQuery (HandlerRequestQuery route) (HandlerResponses route)
   , requestHeaders :: RequestHeaders (HandlerRequestHeaders route) (HandlerResponses route)
   , mkPermissionAction ::
-      HandlerRequest route ->
+      PermissionRequest route ->
       HandlerPermissionAction route
   , handleRequest ::
       HandlerRequest route ->
@@ -115,10 +127,14 @@ class
 data NoRequestBody
   = NoRequestBody
 
-data RequestBody body tags = RequestBody
-  { requestBodySchema :: forall t. FC.Fleece t => Maybe (FC.Schema t body)
-  , requestBodyParser :: Wai.Request -> IO (Either (S.TaggedUnion tags) body)
-  }
+data RequestBody body tags where
+  RequestBody ::
+    (forall t. FC.Fleece t => Maybe (FC.Schema t body)) ->
+    (Wai.Request -> IO (Either (S.TaggedUnion tags) body)) ->
+    RequestBody body tags
+  Deferred ::
+    RequestBody body tags ->
+    RequestBody (BodyHandle (S.TaggedUnion tags) body) tags
 
 schemaRequestBody ::
   Response.Has422Response tags =>
@@ -134,9 +150,8 @@ schemaRequestBodyWith ::
   RequestBody body tags
 schemaRequestBodyWith mkErrorResponse schema =
   RequestBody
-    { requestBodySchema = Just schema
-    , requestBodyParser = parseBodyRequestSchema schema mkErrorResponse
-    }
+    (Just schema)
+    (parseBodyRequestSchema schema mkErrorResponse)
 
 rawRequestBody ::
   Response.HasResponseCodeWithType tags "422" err =>
@@ -151,9 +166,8 @@ rawRequestBodyWith ::
   RequestBody body tags
 rawRequestBodyWith mkErrorResponse decoder =
   RequestBody
-    { requestBodySchema = Nothing
-    , requestBodyParser = parseBodyRaw mkErrorResponse decoder
-    }
+    Nothing
+    (parseBodyRaw mkErrorResponse decoder)
 
 formDataRequestBody ::
   (Response.Has400Response tags, Response.HasResponseCodeWithType tags "422" err) =>
@@ -169,16 +183,32 @@ formDataRequestBodyWith ::
   RequestBody body tags
 formDataRequestBodyWith mkFormErrorResponse mkDecodeErrorResponse formDecoder =
   RequestBody
-    { requestBodySchema = Nothing
-    , requestBodyParser = parseBodyFormData mkFormErrorResponse mkDecodeErrorResponse formDecoder
-    }
+    Nothing
+    (parseBodyFormData mkFormErrorResponse mkDecodeErrorResponse formDecoder)
 
 emptyRequestBody :: RequestBody NoRequestBody tags
 emptyRequestBody =
   RequestBody
-    { requestBodySchema = Nothing
-    , requestBodyParser = const (pure (Right NoRequestBody))
-    }
+    Nothing
+    (const (pure (Right NoRequestBody)))
+
+newtype BodyHandle err body
+  = BodyHandle (IO (Either err body))
+
+decodeBody :: MIO.MonadIO m => BodyHandle err body -> m (Either err body)
+decodeBody (BodyHandle decode) =
+  MIO.liftIO decode
+
+newBodyHandle :: IO (Either err body) -> IO (BodyHandle err body)
+newBodyHandle decode = do
+  cacheVar <- MVar.newMVar Nothing
+  pure . BodyHandle . MVar.modifyMVar cacheVar $ \cached ->
+    case cached of
+      Just result ->
+        pure (cached, result)
+      Nothing -> do
+        result <- decode
+        pure (Just result, result)
 
 data NoRequestQuery
   = NoRequestQuery
@@ -278,20 +308,15 @@ runHandler handler route = do
           Left errResponse ->
             pure errResponse
           Right query -> do
-            errOrBody <- readBody handler
-            case errOrBody of
-              Left errResponse -> pure errResponse
-              Right body ->
-                let
-                  request =
-                    HandlerRequest
-                      { reqRoute = route
-                      , reqBody = body
-                      , reqQuery = query
-                      , reqHeaders = headers
-                      }
-                in
-                  runPermissionAction handler request
+            req <- HasRequest.request
+            body <- MIO.liftIO . newBodyHandle $ parseRequestBody (requestBody handler) req
+            runPermissionAction handler $
+              PermissionRequest
+                { permissionRequestRoute = route
+                , permissionRequestBody = body
+                , permissionRequestQuery = query
+                , permissionRequestHeaders = headers
+                }
 
   let
     responseData =
@@ -330,39 +355,53 @@ readQuery ::
 readQuery handler =
   requestQueryParser (requestQuery handler) <$> HasRequest.request
 
-readBody ::
-  ( MIO.MonadIO m
-  , HasRequest.HasRequest m
-  , tags ~ HandlerResponses route
-  ) =>
-  Handler route ->
-  m (Either (S.TaggedUnion tags) (HandlerRequestBody route))
-readBody handler = do
-  req <- HasRequest.request
-  MIO.liftIO $ requestBodyParser (requestBody handler) req
+parseRequestBody ::
+  RequestBody body tags ->
+  Wai.Request ->
+  IO (Either (S.TaggedUnion tags) body)
+parseRequestBody body req =
+  case body of
+    RequestBody _schema parser ->
+      parser req
+    Deferred deferred ->
+      Right <$> newBodyHandle (parseRequestBody deferred req)
 
 runPermissionAction ::
-  ( Monad m
+  ( MIO.MonadIO m
   , HasHandler route
   , PA.PermissionActionMonad (HandlerPermissionAction route) ~ m
   ) =>
   Handler route ->
-  HandlerRequest route ->
+  PermissionRequest route ->
   m (S.TaggedUnion (HandlerResponses route))
-runPermissionAction handler request = do
+runPermissionAction handler permissionRequest = do
   let
     permissionAction =
-      mkPermissionAction handler request
+      mkPermissionAction handler permissionRequest
 
   errOrPermissionResult <- PA.checkPermissionAction permissionAction
 
   case errOrPermissionResult of
     Left err -> PE.returnPermissionError err
-    Right permissionResult ->
-      PA.runPermissionActionHandler
-        permissionAction
-        permissionResult
-        (handleRequest handler request)
+    Right permissionResult -> do
+      errOrBody <- decodeBody (permissionRequestBody permissionRequest)
+      case errOrBody of
+        Left errResponse ->
+          pure errResponse
+        Right body ->
+          let
+            request =
+              HandlerRequest
+                { reqRoute = permissionRequestRoute permissionRequest
+                , reqBody = body
+                , reqQuery = permissionRequestQuery permissionRequest
+                , reqHeaders = permissionRequestHeaders permissionRequest
+                }
+          in
+            PA.runPermissionActionHandler
+              permissionAction
+              permissionResult
+              (handleRequest handler request)
 
 returnAnyExceptionAs500 ::
   ( MIO.MonadIO m

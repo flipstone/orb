@@ -36,6 +36,7 @@ testGroup =
     , test_schemaBoundsOpenApi
     , test_customStatusCodeOpenApi
     , test_customBodyErrorOpenApi
+    , test_deferredBodyOpenApi
     ]
 
 test_openApiUnknownLabel :: Tasty.TestTree
@@ -172,6 +173,13 @@ test_customBodyErrorOpenApi =
     "Generates the correct OpenAPI JSON for a schema body with a custom error"
     "test/examples/custom-body-error.json"
     $ mkTestOpenApi Fixtures.customBodyErrorOpenApiRouter "custom-body-error"
+
+test_deferredBodyOpenApi :: Tasty.TestTree
+test_deferredBodyOpenApi =
+  mkGoldenTest
+    "Generates the correct OpenAPI JSON for a deferred body"
+    "test/examples/deferred-body.json"
+    $ mkTestOpenApi Fixtures.deferredBodyOpenApiRouter "deferred-body"
 
 mkTestOpenApi :: Orb.OpenApiRouter a -> String -> Either [Orb.OpenApiError] OpenApi.OpenApi
 mkTestOpenApi =
