@@ -5,7 +5,7 @@ cabal-version: 1.12
 -- see: https://github.com/sol/hpack
 
 name:           orb
-version:        0.7.1.0
+version:        0.8.0.0
 description:    Please see the README on GitHub at <https://github.com/flipstone/orb#readme>
 homepage:       https://github.com/flipstone/orb#readme
 bug-reports:    https://github.com/flipstone/orb/issues
@@ -78,7 +78,7 @@ library
   build-depends:
       aeson
     , aeson-pretty
-    , base >=4.7 && <5
+    , base >=4.18 && <5
     , beeline-params >=0.2 && <0.4
     , beeline-routing ==0.3.*
     , bytestring
@@ -119,6 +119,9 @@ test-suite orb-test
   main-is: Main.hs
   other-modules:
       Fixtures
+      Fixtures.CustomBodyError
+      Fixtures.CustomStatusCode
+      Fixtures.DuplicateStatus
       Fixtures.GetWithCookies
       Fixtures.GetWithHeaders
       Fixtures.GetWithPathParams
@@ -136,6 +139,7 @@ test-suite orb-test
       Form
       Handler
       OpenApi
+      StatusCodes
       SwaggerUI
       TestDispatchM
       Paths_orb
@@ -147,7 +151,7 @@ test-suite orb-test
   build-depends:
       aeson
     , aeson-pretty
-    , base >=4.7 && <5
+    , base >=4.18 && <5
     , beeline-params >=0.2 && <0.4
     , beeline-routing
     , bytestring

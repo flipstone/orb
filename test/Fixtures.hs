@@ -2,6 +2,9 @@ module Fixtures
   ( module Export
   ) where
 
+import Fixtures.CustomBodyError as Export
+import Fixtures.CustomStatusCode as Export
+import Fixtures.DuplicateStatus as Export
 import Fixtures.GetWithCookies as Export
 import Fixtures.GetWithHeaders as Export
 import Fixtures.GetWithPathParams as Export

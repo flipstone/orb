@@ -31,6 +31,9 @@ testGroup =
     , TastyHH.testProperty "responds to invalid header params with error" prop_getWithHeadersError
     , TastyHH.testProperty "serves a get with a cookie param" prop_getWithCookies
     , TastyHH.testProperty "responds to invalid cookie params with error" prop_getWithCookiesError
+    , TastyHH.testProperty "serves a custom status code" prop_customStatusCode
+    , TastyHH.testProperty "serves a schema body with a custom parse error response" prop_customBodyError
+    , TastyHH.testProperty "responds to an unparseable schema body with a custom error" prop_customBodyErrorInvalid
     ]
 
 prop_simpleGet :: HH.Property
@@ -130,6 +133,44 @@ prop_getWithCookiesError = HH.withTests 1 . HH.property $ do
     response <- WaiTest.request request
     WaiTest.assertStatus 400 response
     WaiTest.assertBody "{\"bad_request\":\"Required cookie param missing: cookieParam\"}" response
+
+prop_customStatusCode :: HH.Property
+prop_customStatusCode = HH.withTests 1 . HH.property $ do
+  let
+    request =
+      WaiTest.setPath Wai.defaultRequest "/test/custom_status_code"
+
+  evalAppSession Fixtures.customStatusCodeOpenApiRouter $ do
+    response <- WaiTest.request request
+    WaiTest.assertStatus 499 response
+    WaiTest.assertBody "{\"success\":\"customStatusCode\"}" response
+
+prop_customBodyError :: HH.Property
+prop_customBodyError = HH.withTests 1 . HH.property $ do
+  let
+    request =
+      (WaiTest.setPath Wai.defaultRequest "/test/custom_body_error")
+        { Wai.requestMethod = HTTPTypes.methodPost
+        }
+
+  evalAppSession Fixtures.customBodyErrorOpenApiRouter $ do
+    response <- WaiTest.srequest (WaiTest.SRequest request "{\"postParam\": \"value\"}")
+    WaiTest.assertStatus 200 response
+    WaiTest.assertBody "{\"success\":\"value\"}" response
+
+prop_customBodyErrorInvalid :: HH.Property
+prop_customBodyErrorInvalid = HH.withTests 1 . HH.property $ do
+  let
+    request =
+      (WaiTest.setPath Wai.defaultRequest "/test/custom_body_error")
+        { Wai.requestMethod = HTTPTypes.methodPost
+        }
+
+  evalAppSession Fixtures.customBodyErrorOpenApiRouter $ do
+    response <- WaiTest.srequest (WaiTest.SRequest request "{\"wrongParam\": \"value\"}")
+    WaiTest.assertStatus 400 response
+    WaiTest.assertContentType "application/json" response
+    WaiTest.assertBodyContains "\"errorCode\":\"invalid_body\"" response
 
 evalAppSession ::
   ( Orb.Dispatchable TDM.TestDispatchM a

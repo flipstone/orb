@@ -33,20 +33,21 @@ instance Orb.HasHandler NullableRefCollectComponents where
   routeHandler =
     Orb.Handler
       { Orb.handlerId = "NullableRefCollectComponentsHandler"
-      , Orb.requestBody = Orb.EmptyRequestBody
-      , Orb.requestQuery = Orb.EmptyRequestQuery
-      , Orb.requestHeaders = Orb.EmptyRequestHeaders
+      , Orb.requestBody = Orb.emptyRequestBody
+      , Orb.requestQuery = Orb.emptyRequestQuery
+      , Orb.requestHeaders = Orb.emptyRequestHeaders
       , Orb.handlerResponseBodies =
           Orb.responseBodies
-            . Orb.addResponseSchema200 (FC.nullable nullableRefCollectComponentsResponseSchema)
-            . Orb.addResponseSchema400 nullableRefCollectComponentsResponseSchema
-            . Orb.addResponseSchema500 Orb.internalServerErrorSchema
+            . Orb.addResponseSchema Orb.status200 (FC.nullable nullableRefCollectComponentsResponseSchema)
+            . Orb.addResponseSchema Orb.status400 nullableRefCollectComponentsResponseSchema
+            . Orb.addResponseSchema Orb.status500 Orb.internalServerErrorSchema
             $ Orb.noResponseBodies
       , Orb.mkPermissionAction =
           \_request -> NoPermissions
       , Orb.handleRequest =
           \_request () ->
-            Orb.return200
+            Orb.returnResponse
+              Orb.status200
               ( Right
                   NullableRefCollectComponentsResponse
                     { outerField =
@@ -58,9 +59,9 @@ instance Orb.HasHandler NullableRefCollectComponents where
       }
 
 type NullableRefCollectComponentsResponses =
-  [ Orb.Response200 (Either FC.Null NullableRefCollectComponentsResponse)
-  , Orb.Response400 NullableRefCollectComponentsResponse
-  , Orb.Response500 Orb.InternalServerError
+  [ Orb.Response "200" (Either FC.Null NullableRefCollectComponentsResponse)
+  , Orb.Response "400" NullableRefCollectComponentsResponse
+  , Orb.Response "500" Orb.InternalServerError
   ]
 
 newtype NullableRefCollectComponentsResponse = NullableRefCollectComponentsResponse {outerField :: InnerObject}

@@ -7,6 +7,7 @@ import Test.Tasty qualified as Tasty
 import Form qualified
 import Handler qualified
 import OpenApi qualified
+import StatusCodes qualified
 import SwaggerUI qualified
 
 main :: IO ()
@@ -17,5 +18,6 @@ main =
       [ Form.testGroup
       , Handler.testGroup
       , OpenApi.testGroup
+      , StatusCodes.testGroup
       , SwaggerUI.testGroup
       ]

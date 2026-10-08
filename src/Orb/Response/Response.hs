@@ -34,12 +34,15 @@ import Orb.Response.ContentType (ContentType)
 
 data ResponseBodies (tags :: [S.Tag]) = ResponseBodies
   { encodeResponseBranches :: S.TaggedBranches tags ResponseData
-  , responseStatusMap :: Map.Map HTTP.Status ResponseBody
+  , responseStatusMap :: Map.Map HTTP.Status [ResponseBody]
   }
 
 responseBodyList :: ResponseBodies tags -> [(HTTP.Status, ResponseBody)]
-responseBodyList =
-  Map.toList . responseStatusMap
+responseBodyList bodies =
+  [ (status, body)
+  | (status, statusBodies) <- Map.toList (responseStatusMap bodies)
+  , body <- statusBodies
+  ]
 
 data ResponseBody where
   NoSchemaResponseBody ::
@@ -63,7 +66,7 @@ data ResponseData = ResponseData
 
 data ResponseBodiesBuilder (tags :: [S.Tag]) = ResponseBodiesBuilder
   { encodeResponseBranchesBuilder :: S.TaggedBranchBuilder tags ResponseData
-  , responseStatusMapBuilder :: Map.Map HTTP.Status ResponseBody
+  , responseStatusMapBuilder :: Map.Map HTTP.Status [ResponseBody]
   }
 
 noResponseBodies :: ResponseBodiesBuilder '[]

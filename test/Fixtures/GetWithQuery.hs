@@ -48,23 +48,23 @@ instance Orb.HasHandler GetWithQuery where
   routeHandler = handler
 
 type TestResponses =
-  [ Orb.Response200 Orb.SuccessMessage
-  , Orb.Response400 Orb.BadRequestMessage
-  , Orb.Response500 Orb.InternalServerError
+  [ Orb.Response "200" Orb.SuccessMessage
+  , Orb.Response "400" Orb.BadRequestMessage
+  , Orb.Response "500" Orb.InternalServerError
   ]
 
 handler :: Orb.Handler GetWithQuery
 handler =
   Orb.Handler
     { Orb.handlerId = "getWithQuery"
-    , Orb.requestBody = Orb.EmptyRequestBody
-    , Orb.requestQuery = Orb.RequestQuery testQuerySchema
-    , Orb.requestHeaders = Orb.EmptyRequestHeaders
+    , Orb.requestBody = Orb.emptyRequestBody
+    , Orb.requestQuery = Orb.schemaRequestQuery testQuerySchema
+    , Orb.requestHeaders = Orb.emptyRequestHeaders
     , Orb.handlerResponseBodies =
         Orb.responseBodies
-          . Orb.addResponseSchema200 Orb.successMessageSchema
-          . Orb.addResponseSchema400 Orb.badRequestMessageSchema
-          . Orb.addResponseSchema500 Orb.internalServerErrorSchema
+          . Orb.addResponseSchema Orb.status200 Orb.successMessageSchema
+          . Orb.addResponseSchema Orb.status400 Orb.badRequestMessageSchema
+          . Orb.addResponseSchema Orb.status500 Orb.internalServerErrorSchema
           $ Orb.noResponseBodies
     , Orb.mkPermissionAction =
         \_request -> NoPermissions
@@ -73,5 +73,5 @@ handler =
           let
             q = textQueryParam . Orb.reqQuery $ request
           in
-            Orb.return200 (Orb.SuccessMessage q)
+            Orb.returnResponse Orb.status200 (Orb.SuccessMessage q)
     }

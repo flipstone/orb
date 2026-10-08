@@ -282,6 +282,7 @@ data OpenApiError
   | UnsupportedMethod HTTPTypes.StdMethod PathInfo
   | InvalidSchemaName T.Text SchemaInfo (Set.Set Char)
   | SchemaConflict T.Text SchemaInfo SchemaInfo [String]
+  | DuplicateResponseStatus String Int
 
 instance Show OpenApiError where
   show = renderOpenApiError
@@ -319,6 +320,12 @@ renderOpenApiError err =
           : renderPath (schemaPath that)
           : "========= Conflicts"
           : conflicts
+    DuplicateResponseStatus handlerId statusCode ->
+      "Handler "
+        <> handlerId
+        <> " declares more than one response for HTTP status "
+        <> show statusCode
+        <> ", but OpenAPI allows only one response per status."
 
 runOpenApiGen :: OpenApiOptions -> OpenApiGen a -> Either [OpenApiError] a
 runOpenApiGen options (OpenApiGen reader) =
@@ -563,61 +570,57 @@ mkRequestBody ::
   Handler.Handler route ->
   Either OpenApiError (Maybe (OpenApi.Referenced OpenApi.RequestBody, Map.Map T.Text SchemaInfo))
 mkRequestBody handler =
-  case Handler.requestBody handler of
-    Handler.SchemaRequestBody schema -> do
-      let
-        FleeceOpenApi mkErrOrSchemaInfo = FC.schemaInterpreter schema
+  case Handler.requestBodySchema (Handler.requestBody handler) of
+    Nothing -> Right Nothing
+    Just schema -> mkRequestBodyForSchema schema
 
-      schemaInfo <- mkErrOrSchemaInfo []
+mkRequestBodyForSchema ::
+  FC.Schema FleeceOpenApi a ->
+  Either OpenApiError (Maybe (OpenApi.Referenced OpenApi.RequestBody, Map.Map T.Text SchemaInfo))
+mkRequestBodyForSchema schema = do
+  let
+    FleeceOpenApi mkErrOrSchemaInfo = FC.schemaInterpreter schema
 
-      let
-        schemaRef =
-          mkSchemaRef schemaInfo
+  schemaInfo <- mkErrOrSchemaInfo []
 
-        mediaTypeObject =
-          mempty
-            { OpenApi._mediaTypeObjectSchema = Just schemaRef
-            }
+  let
+    schemaRef =
+      mkSchemaRef schemaInfo
 
-        requestBody =
-          OpenApi.Inline $
-            OpenApi.RequestBody
-              { OpenApi._requestBodyDescription = Nothing
-              , OpenApi._requestBodyRequired = Just True
-              , OpenApi._requestBodyContent =
-                  IOHM.fromList
-                    [ (mkMediaType "application" "json", mediaTypeObject)
-                    ]
-              }
+    mediaTypeObject =
+      mempty
+        { OpenApi._mediaTypeObjectSchema = Just schemaRef
+        }
 
-      components <- collectComponents [schemaInfo]
-      pure $ Just (requestBody, components)
-    Handler.RawRequestBody _decoder ->
-      Right Nothing
-    Handler.FormDataRequestBody _formDecoder ->
-      Right Nothing
-    Handler.EmptyRequestBody ->
-      Right Nothing
+    requestBody =
+      OpenApi.Inline $
+        OpenApi.RequestBody
+          { OpenApi._requestBodyDescription = Nothing
+          , OpenApi._requestBodyRequired = Just True
+          , OpenApi._requestBodyContent =
+              IOHM.fromList
+                [ (mkMediaType "application" "json", mediaTypeObject)
+                ]
+          }
+
+  components <- collectComponents [schemaInfo]
+  pure $ Just (requestBody, components)
 
 mkQueryParams ::
   Handler.Handler route ->
   [OpenApi.Referenced OpenApi.Param]
 mkQueryParams handler =
-  case Handler.requestQuery handler of
-    Handler.EmptyRequestQuery ->
-      []
-    Handler.RequestQuery schema ->
-      toOpenApiParams schema OpenApi.ParamQuery
+  case Handler.requestQuerySchema (Handler.requestQuery handler) of
+    Nothing -> []
+    Just schema -> toOpenApiParams schema OpenApi.ParamQuery
 
 mkHeaderParams ::
   Handler.Handler route ->
   [OpenApi.Referenced OpenApi.Param]
 mkHeaderParams handler =
-  case Handler.requestHeaders handler of
-    Handler.EmptyRequestHeaders ->
-      []
-    Handler.RequestHeaders schema ->
-      toOpenApiParams schema OpenApi.ParamHeader
+  case Handler.requestHeadersSchema (Handler.requestHeaders handler) of
+    Nothing -> []
+    Just schema -> toOpenApiParams schema OpenApi.ParamHeader
 
 newtype OpenApiParams record a = OpenApiParams
   { toOpenApiParamsDList :: OpenApi.ParamLocation -> DList.DList (OpenApi.Referenced OpenApi.Param)
@@ -734,8 +737,20 @@ mkResponses handler =
         combineSchemaComponents components =<< collectComponents (Maybe.maybeToList mbSchemaInfo)
 
       pure (newResponses, newComponents)
+    duplicateStatusCodes =
+      Maybe.mapMaybe
+        ( \statusCodes ->
+            case statusCodes of
+              statusCode : _ : _ -> Just statusCode
+              _ -> Nothing
+        )
+        (List.group (fmap (HTTPTypes.statusCode . fst) schemas))
   in
-    Monad.foldM addResponse (mempty, Map.empty) schemas
+    case duplicateStatusCodes of
+      statusCode : _ ->
+        Left (DuplicateResponseStatus (Handler.handlerId handler) statusCode)
+      [] ->
+        Monad.foldM addResponse (mempty, Map.empty) schemas
 
 mkMediaType :: String -> String -> MediaType.MediaType
 mkMediaType main sub =

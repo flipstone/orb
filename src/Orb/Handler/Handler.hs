@@ -1,6 +1,5 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
@@ -17,10 +16,23 @@ module Orb.Handler.Handler
   , HasHandler (..)
   , NoRequestBody (..)
   , RequestBody (..)
+  , schemaRequestBody
+  , schemaRequestBodyWith
+  , rawRequestBody
+  , rawRequestBodyWith
+  , formDataRequestBody
+  , formDataRequestBodyWith
+  , emptyRequestBody
   , NoRequestQuery (..)
   , RequestQuery (..)
+  , schemaRequestQuery
+  , schemaRequestQueryWith
+  , emptyRequestQuery
   , NoRequestHeaders (..)
   , RequestHeaders (..)
+  , schemaRequestHeaders
+  , schemaRequestHeadersWith
+  , emptyRequestHeaders
   , encodeResponse
   )
 where
@@ -103,43 +115,144 @@ class
 data NoRequestBody
   = NoRequestBody
 
-data RequestBody body tags where
-  SchemaRequestBody ::
-    Response.Has422Response tags =>
-    (forall t. FC.Fleece t => FC.Schema t body) ->
-    RequestBody body tags
-  RawRequestBody ::
-    Response.HasResponseCodeWithType tags "422" err =>
-    (LBS.ByteString -> Either err body) ->
-    RequestBody body tags
-  FormDataRequestBody ::
-    (Response.Has400Response tags, Response.HasResponseCodeWithType tags "422" err) =>
-    (Form -> Either err body) ->
-    RequestBody body tags
-  EmptyRequestBody ::
-    RequestBody NoRequestBody tags
+data RequestBody body tags = RequestBody
+  { requestBodySchema :: forall t. FC.Fleece t => Maybe (FC.Schema t body)
+  , requestBodyParser :: Wai.Request -> IO (Either (S.TaggedUnion tags) body)
+  }
+
+schemaRequestBody ::
+  Response.Has422Response tags =>
+  (forall t. FC.Fleece t => FC.Schema t body) ->
+  RequestBody body tags
+schemaRequestBody =
+  schemaRequestBodyWith
+    (Response.mkResponse Response.status422 . Response.UnprocessableContentMessage)
+
+schemaRequestBodyWith ::
+  (T.Text -> S.TaggedUnion tags) ->
+  (forall t. FC.Fleece t => FC.Schema t body) ->
+  RequestBody body tags
+schemaRequestBodyWith mkErrorResponse schema =
+  RequestBody
+    { requestBodySchema = Just schema
+    , requestBodyParser = parseBodyRequestSchema schema mkErrorResponse
+    }
+
+rawRequestBody ::
+  Response.HasResponseCodeWithType tags "422" err =>
+  (LBS.ByteString -> Either err body) ->
+  RequestBody body tags
+rawRequestBody =
+  rawRequestBodyWith (Response.mkResponse Response.status422)
+
+rawRequestBodyWith ::
+  (err -> S.TaggedUnion tags) ->
+  (LBS.ByteString -> Either err body) ->
+  RequestBody body tags
+rawRequestBodyWith mkErrorResponse decoder =
+  RequestBody
+    { requestBodySchema = Nothing
+    , requestBodyParser = parseBodyRaw mkErrorResponse decoder
+    }
+
+formDataRequestBody ::
+  (Response.Has400Response tags, Response.HasResponseCodeWithType tags "422" err) =>
+  (Form -> Either err body) ->
+  RequestBody body tags
+formDataRequestBody =
+  formDataRequestBodyWith badRequest (Response.mkResponse Response.status422)
+
+formDataRequestBodyWith ::
+  (T.Text -> S.TaggedUnion tags) ->
+  (err -> S.TaggedUnion tags) ->
+  (Form -> Either err body) ->
+  RequestBody body tags
+formDataRequestBodyWith mkFormErrorResponse mkDecodeErrorResponse formDecoder =
+  RequestBody
+    { requestBodySchema = Nothing
+    , requestBodyParser = parseBodyFormData mkFormErrorResponse mkDecodeErrorResponse formDecoder
+    }
+
+emptyRequestBody :: RequestBody NoRequestBody tags
+emptyRequestBody =
+  RequestBody
+    { requestBodySchema = Nothing
+    , requestBodyParser = const (pure (Right NoRequestBody))
+    }
 
 data NoRequestQuery
   = NoRequestQuery
 
-data RequestQuery query tags where
-  RequestQuery ::
-    Response.Has400Response tags =>
-    (forall schema. BP.QuerySchema schema => schema query query) ->
-    RequestQuery query tags
-  EmptyRequestQuery ::
-    RequestQuery NoRequestQuery tags
+data RequestQuery query tags = RequestQuery
+  { requestQuerySchema :: forall schema. BP.QuerySchema schema => Maybe (schema query query)
+  , requestQueryParser :: Wai.Request -> Either (S.TaggedUnion tags) query
+  }
+
+schemaRequestQuery ::
+  Response.Has400Response tags =>
+  (forall schema. BP.QuerySchema schema => schema query query) ->
+  RequestQuery query tags
+schemaRequestQuery =
+  schemaRequestQueryWith badRequest
+
+schemaRequestQueryWith ::
+  (T.Text -> S.TaggedUnion tags) ->
+  (forall schema. BP.QuerySchema schema => schema query query) ->
+  RequestQuery query tags
+schemaRequestQueryWith mkErrorResponse schema =
+  RequestQuery
+    { requestQuerySchema = Just schema
+    , requestQueryParser =
+        either (Left . mkErrorResponse) Right
+          . BP.decodeQuery schema
+          . Wai.rawQueryString
+    }
+
+emptyRequestQuery :: RequestQuery NoRequestQuery tags
+emptyRequestQuery =
+  RequestQuery
+    { requestQuerySchema = Nothing
+    , requestQueryParser = const (Right NoRequestQuery)
+    }
 
 data NoRequestHeaders
   = NoRequestHeaders
 
-data RequestHeaders headers tags where
-  RequestHeaders ::
-    Response.Has400Response tags =>
-    (forall schema. BP.HeaderSchema schema => schema headers headers) ->
-    RequestHeaders headers tags
-  EmptyRequestHeaders ::
-    RequestHeaders NoRequestHeaders tags
+data RequestHeaders headers tags = RequestHeaders
+  { requestHeadersSchema :: forall schema. BP.HeaderSchema schema => Maybe (schema headers headers)
+  , requestHeadersParser :: Wai.Request -> Either (S.TaggedUnion tags) headers
+  }
+
+schemaRequestHeaders ::
+  Response.Has400Response tags =>
+  (forall schema. BP.HeaderSchema schema => schema headers headers) ->
+  RequestHeaders headers tags
+schemaRequestHeaders =
+  schemaRequestHeadersWith badRequest
+
+schemaRequestHeadersWith ::
+  (T.Text -> S.TaggedUnion tags) ->
+  (forall schema. BP.HeaderSchema schema => schema headers headers) ->
+  RequestHeaders headers tags
+schemaRequestHeadersWith mkErrorResponse schema =
+  RequestHeaders
+    { requestHeadersSchema = Just schema
+    , requestHeadersParser =
+        either (Left . mkErrorResponse) Right
+          . BP.decodeHeaders schema
+          . Wai.requestHeaders
+    }
+
+emptyRequestHeaders :: RequestHeaders NoRequestHeaders tags
+emptyRequestHeaders =
+  RequestHeaders
+    { requestHeadersSchema = Nothing
+    , requestHeadersParser = const (Right NoRequestHeaders)
+    }
+
+badRequest :: Response.Has400Response tags => T.Text -> S.TaggedUnion tags
+badRequest =
+  Response.mkResponse Response.status400 . Response.BadRequestMessage
 
 runHandler ::
   ( HasHandler route
@@ -204,15 +317,8 @@ readHeaders ::
   ) =>
   Handler route ->
   m (Either (S.TaggedUnion tags) (HandlerRequestHeaders route))
-readHeaders handler = do
-  request <- HasRequest.request
-  case requestHeaders handler of
-    EmptyRequestHeaders ->
-      pure (Right NoRequestHeaders)
-    RequestHeaders schema ->
-      case BP.decodeHeaders schema (Wai.requestHeaders request) of
-        Left err -> fmap Left . Response.return400 . Response.BadRequestMessage $ err
-        Right headers -> pure . Right $ headers
+readHeaders handler =
+  requestHeadersParser (requestHeaders handler) <$> HasRequest.request
 
 readQuery ::
   ( Monad m
@@ -221,15 +327,8 @@ readQuery ::
   ) =>
   Handler route ->
   m (Either (S.TaggedUnion tags) (HandlerRequestQuery route))
-readQuery handler = do
-  request <- HasRequest.request
-  case requestQuery handler of
-    EmptyRequestQuery ->
-      pure (Right NoRequestQuery)
-    RequestQuery schema ->
-      case BP.decodeQuery schema (Wai.rawQueryString request) of
-        Left err -> fmap Left . Response.return400 . Response.BadRequestMessage $ err
-        Right query -> pure . Right $ query
+readQuery handler =
+  requestQueryParser (requestQuery handler) <$> HasRequest.request
 
 readBody ::
   ( MIO.MonadIO m
@@ -238,12 +337,9 @@ readBody ::
   ) =>
   Handler route ->
   m (Either (S.TaggedUnion tags) (HandlerRequestBody route))
-readBody handler =
-  case requestBody handler of
-    SchemaRequestBody schema -> parseBodyRequestSchema schema
-    RawRequestBody bodyDecoder -> parseBodyRaw bodyDecoder
-    FormDataRequestBody formDecoder -> parseBodyFormData formDecoder
-    EmptyRequestBody -> pure . Right $ NoRequestBody
+readBody handler = do
+  req <- HasRequest.request
+  MIO.liftIO $ requestBodyParser (requestBody handler) req
 
 runPermissionAction ::
   ( Monad m
@@ -286,68 +382,62 @@ returnAnyExceptionAs500 action = do
       Response.return500 Response.InternalServerError
 
 parseBodyFormData ::
-  ( Response.Has400Response tags
-  , Response.HasResponseCodeWithType tags "422" err
-  , HasRequest.HasRequest m
-  , MIO.MonadIO m
-  ) =>
+  (T.Text -> S.TaggedUnion tags) ->
+  (err -> S.TaggedUnion tags) ->
   (Form -> Either err request) ->
-  m (Either (S.TaggedUnion tags) request)
-parseBodyFormData requestDecoder = do
-  req <- HasRequest.request
+  Wai.Request ->
+  IO (Either (S.TaggedUnion tags) request)
+parseBodyFormData mkFormErrorResponse mkDecodeErrorResponse formDecoder req = do
   errOrFormFields <-
-    MIO.liftIO
-      . Safe.try
-      $ Wai.parseRequestBodyEx
+    Safe.try $
+      Wai.parseRequestBodyEx
         Wai.defaultParseRequestBodyOptions
         Wai.lbsBackEnd
         req
 
-  case errOrFormFields of
-    Left (err :: Wai.RequestParseException) ->
-      fmap Left . Response.return400 . Response.BadRequestMessage . T.pack . show $ err
-    Right formFields ->
-      case getForm formFields of
-        Left err ->
-          fmap Left . Response.return400 . Response.BadRequestMessage $ err
-        Right form ->
-          case requestDecoder form of
-            Left err -> fmap Left . Response.return422 $ err
-            Right request -> pure . Right $ request
+  pure $
+    case errOrFormFields of
+      Left (err :: Wai.RequestParseException) ->
+        Left . mkFormErrorResponse . T.pack . show $ err
+      Right formFields ->
+        case getForm formFields of
+          Left err ->
+            Left . mkFormErrorResponse $ err
+          Right form ->
+            case formDecoder form of
+              Left err -> Left . mkDecodeErrorResponse $ err
+              Right request -> Right $ request
 
 parseBodyRequestSchema ::
-  ( Response.Has422Response tags
-  , HasRequest.HasRequest m
-  , MIO.MonadIO m
-  ) =>
   (forall t. FC.Fleece t => FC.Schema t request) ->
-  m (Either (S.TaggedUnion tags) request)
-parseBodyRequestSchema schema = do
-  req <- HasRequest.request
-  body <- MIO.liftIO $ Wai.consumeRequestBodyStrict req
-  case FA.decode schema body of
-    Left err ->
-      fmap Left
-        . Response.return422
-        . Response.UnprocessableContentMessage
-        . T.pack
-        $ err
-    Right request ->
-      pure . Right $ request
+  (T.Text -> S.TaggedUnion tags) ->
+  Wai.Request ->
+  IO (Either (S.TaggedUnion tags) request)
+parseBodyRequestSchema schema mkErrorResponse req = do
+  body <- Wai.consumeRequestBodyStrict req
+  pure $
+    case FA.decode schema body of
+      Left err ->
+        Left
+          . mkErrorResponse
+          . T.pack
+          $ err
+      Right request ->
+        Right $ request
 
 parseBodyRaw ::
-  ( Response.HasResponseCodeWithType tags "422" err
-  , HasRequest.HasRequest m
-  , MIO.MonadIO m
-  ) =>
+  (err -> S.TaggedUnion tags) ->
   (LBS.ByteString -> Either err request) ->
-  m (Either (S.TaggedUnion tags) request)
-parseBodyRaw requestDecoder = do
-  req <- HasRequest.request
-  body <- MIO.liftIO $ Wai.consumeRequestBodyStrict req
-  case requestDecoder body of
-    Left err -> fmap Left . Response.return422 $ err
-    Right request -> pure . Right $ request
+  Wai.Request ->
+  IO (Either (S.TaggedUnion tags) request)
+parseBodyRaw mkErrorResponse requestDecoder req = do
+  body <- Wai.consumeRequestBodyStrict req
+  pure $
+    case requestDecoder body of
+      Left err ->
+        Left . mkErrorResponse $ err
+      Right request ->
+        Right request
 
 encodeResponse :: Response.ResponseBodies tags -> S.TaggedUnion tags -> Response.ResponseData
 encodeResponse =
