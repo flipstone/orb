@@ -13,4 +13,14 @@ if [ -f .env ]; then
   echo "Skipping creation of .env because it already exists. Remove it if you want to this script to recreate it"
 else
   echo "PROJECT_DIR=$PWD" >> .env
+
+  GIT_COMMON_DIR_RAW="$(git rev-parse --git-common-dir)"
+
+  if [ "$GIT_COMMON_DIR_RAW" != ".git" ]; then
+    GIT_COMMON_DIR="$(readlink --canonicalize "$GIT_COMMON_DIR_RAW")"
+    echo "GIT_COMMON_DIR=$GIT_COMMON_DIR" >> .env
+    echo "Detected git worktree. Main git dir: $GIT_COMMON_DIR"
+  else
+    echo "GIT_COMMON_DIR=" >> .env
+  fi
 fi
