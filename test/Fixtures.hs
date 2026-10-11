@@ -13,6 +13,7 @@ import Fixtures.NoPermissions as Export
 import Fixtures.NullableRef as Export
 import Fixtures.NullableRefCollectComponents as Export
 import Fixtures.OpenApiSubset as Export
+import Fixtures.PermissionReadsBody as Export
 import Fixtures.SchemaBounds as Export
 import Fixtures.SimpleGet as Export
 import Fixtures.SimplePost as Export

@@ -8,6 +8,8 @@ module Handler
 
 import Beeline.Routing qualified as R
 import Control.Monad.IO.Class qualified as MIO
+import Data.ByteString qualified as BS
+import Data.ByteString.Lazy qualified as LBS
 import Hedgehog qualified as HH
 import Network.HTTP.Types qualified as HTTPTypes
 import Network.Wai qualified as Wai
@@ -34,6 +36,10 @@ testGroup =
     , TastyHH.testProperty "serves a custom status code" prop_customStatusCode
     , TastyHH.testProperty "serves a schema body with a custom parse error response" prop_customBodyError
     , TastyHH.testProperty "responds to an unparseable schema body with a custom error" prop_customBodyErrorInvalid
+    , TastyHH.testProperty "checks permission before decoding a schema body" prop_permissionBeforeBody
+    , TastyHH.testProperty "reuses a body the permission action decoded" prop_permissionReadsBody
+    , TastyHH.testProperty "lets a permission action reject based on the body" prop_permissionRejectsBody
+    , TastyHH.testProperty "answers a body decode failure after permission" prop_permissionReadsInvalidBody
     ]
 
 prop_simpleGet :: HH.Property
@@ -171,6 +177,43 @@ prop_customBodyErrorInvalid = HH.withTests 1 . HH.property $ do
     WaiTest.assertStatus 400 response
     WaiTest.assertContentType "application/json" response
     WaiTest.assertBodyContains "\"errorCode\":\"invalid_body\"" response
+
+prop_permissionBeforeBody :: HH.Property
+prop_permissionBeforeBody = HH.withTests 1 . HH.property $
+  evalAppSession Fixtures.permissionReadsBodyOpenApiRouter $ do
+    response <- WaiTest.srequest (permissionReadsBodyRequest "Bearer bad" "not json")
+    WaiTest.assertStatus 401 response
+    WaiTest.assertBody "{\"unauthorized\":\"Invalid token\"}" response
+
+prop_permissionReadsBody :: HH.Property
+prop_permissionReadsBody = HH.withTests 1 . HH.property $
+  evalAppSession Fixtures.permissionReadsBodyOpenApiRouter $ do
+    response <- WaiTest.srequest (permissionReadsBodyRequest "Bearer good" "{\"postParam\": \"allowed\"}")
+    WaiTest.assertStatus 200 response
+    WaiTest.assertBody "{\"success\":\"allowed\"}" response
+
+prop_permissionRejectsBody :: HH.Property
+prop_permissionRejectsBody = HH.withTests 1 . HH.property $
+  evalAppSession Fixtures.permissionReadsBodyOpenApiRouter $ do
+    response <- WaiTest.srequest (permissionReadsBodyRequest "Bearer good" "{\"postParam\": \"denied\"}")
+    WaiTest.assertStatus 401 response
+    WaiTest.assertBody "{\"unauthorized\":\"Not allowed\"}" response
+
+prop_permissionReadsInvalidBody :: HH.Property
+prop_permissionReadsInvalidBody = HH.withTests 1 . HH.property $
+  evalAppSession Fixtures.permissionReadsBodyOpenApiRouter $ do
+    response <- WaiTest.srequest (permissionReadsBodyRequest "Bearer good" "not json")
+    WaiTest.assertStatus 422 response
+    WaiTest.assertContentType "application/json" response
+    WaiTest.assertBodyContains "\"unprocessable_content\"" response
+
+permissionReadsBodyRequest :: BS.ByteString -> LBS.ByteString -> WaiTest.SRequest
+permissionReadsBodyRequest token =
+  WaiTest.SRequest
+    (WaiTest.setPath Wai.defaultRequest "/test/permission_reads_body")
+      { Wai.requestMethod = HTTPTypes.methodPost
+      , Wai.requestHeaders = [(HTTPTypes.hAuthorization, token)]
+      }
 
 evalAppSession ::
   ( Orb.Dispatchable TDM.TestDispatchM a
