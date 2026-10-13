@@ -131,6 +131,7 @@ test-suite orb-test
       Fixtures.NullableRefCollectComponents
       Fixtures.OpenApiSubset
       Fixtures.PermissionReadsBody
+      Fixtures.RouteSummaries
       Fixtures.SchemaBounds
       Fixtures.SchemaDescriptions
       Fixtures.SimpleGet
@@ -140,6 +141,7 @@ test-suite orb-test
       Form
       Handler
       OpenApi
+      RouteSummaries
       StatusCodes
       SwaggerUI
       TestDispatchM

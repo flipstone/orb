@@ -16,6 +16,8 @@ module Orb.OpenApi
   , defaultOpenApiOptions
   , OpenApiProvider (provideOpenApi)
   , OpenApiRouter
+  , RouteSummary (..)
+  , routeSummaries
   , FleeceOpenApi
   , SchemaWithComponents (..)
   , schemaWithComponents
@@ -46,6 +48,7 @@ import Data.Semialign.Indexed qualified as IAlign
 import Data.Set qualified as Set
 import Data.Text qualified as T
 import Data.These qualified as These
+import Data.Typeable qualified as Typeable
 import Fleece.Core qualified as FC
 import GHC.TypeLits (symbolVal)
 import Network.HTTP.Media.MediaType qualified as MediaType
@@ -367,6 +370,7 @@ combineOpenApiBuilder (OpenApiBuilder left) (OpenApiBuilder right) =
 data OpenApiBuilders = OpenApiBuilders
   { labeledBuilders :: Map.Map String OpenApiBuilder
   , unlabeledBuilder :: OpenApiBuilder
+  , routeSummaryBuilder :: PathInfo -> DList.DList RouteSummary
   }
 
 emptyOpenApiBuilders :: OpenApiBuilders
@@ -374,6 +378,7 @@ emptyOpenApiBuilders =
   OpenApiBuilders
     { labeledBuilders = Map.empty
     , unlabeledBuilder = emptyOpenApiBuilder
+    , routeSummaryBuilder = const DList.empty
     }
 
 modifyOpenApiBuildersPathInfo ::
@@ -384,6 +389,7 @@ modifyOpenApiBuildersPathInfo f builders =
   OpenApiBuilders
     { labeledBuilders = modifyOpenApiBuilderPathInfo f <$> labeledBuilders builders
     , unlabeledBuilder = modifyOpenApiBuilderPathInfo f (unlabeledBuilder builders)
+    , routeSummaryBuilder = routeSummaryBuilder builders . f
     }
 
 combineOpenApiBuilders ::
@@ -401,6 +407,10 @@ combineOpenApiBuilders left right =
         combineOpenApiBuilder
           (unlabeledBuilder left)
           (unlabeledBuilder right)
+    , routeSummaryBuilder =
+        \pathInfo ->
+          routeSummaryBuilder left pathInfo
+            <> routeSummaryBuilder right pathInfo
     }
 
 {- |
@@ -410,6 +420,28 @@ combineOpenApiBuilders left right =
 newtype OpenApiRouter a
   = OpenApiRouter OpenApiBuilders
 
+data RouteSummary = RouteSummary
+  { routeSummaryMethod :: HTTPTypes.StdMethod
+  , routeSummaryPath :: FilePath
+  , routeSummaryRouteType :: Maybe String
+  , routeSummaryLabels :: Set.Set String
+  }
+  deriving (Eq, Show)
+
+routeSummaries :: OpenApiRouter a -> [RouteSummary]
+routeSummaries (OpenApiRouter builders) =
+  DList.toList . routeSummaryBuilder builders $
+    PathInfo
+      { pathInfoPath = ""
+      , pathInfoParams = []
+      }
+
+addRouteSummaryLabel :: String -> RouteSummary -> RouteSummary
+addRouteSummaryLabel label summary =
+  summary
+    { routeSummaryLabels = Set.insert label (routeSummaryLabels summary)
+    }
+
 instance OpenApiProvider OpenApiRouter where
   provideOpenApi name (OpenApiRouter builders) =
     let
@@ -418,9 +450,14 @@ instance OpenApiProvider OpenApiRouter where
           { labeledBuilders =
               Map.singleton name (unlabeledBuilder builders)
           }
+
+      labeledSummaries =
+        fmap (addRouteSummaryLabel name) . routeSummaryBuilder builders
     in
       OpenApiRouter $
-        combineOpenApiBuilders additionalBuilders builders
+        combineOpenApiBuilders
+          additionalBuilders
+          builders {routeSummaryBuilder = labeledSummaries}
 
 instance Handler.ServerRouter OpenApiRouter where
   methodHandler method handler (Builder mkRoute) =
@@ -460,11 +497,46 @@ instance Handler.ServerRouter OpenApiRouter where
               failOpenApiGenOne (UnsupportedMethod method pathInfo)
             Just pathItem -> do
               pure $ singletonApiInfo allComponents pathInfo pathItem
+
+      routeType =
+        renderRouteType (Typeable.typeRep handler)
     in
       OpenApiRouter $
         emptyOpenApiBuilders
           { unlabeledBuilder = builder
+          , routeSummaryBuilder = singletonRouteSummary method (Just routeType) . mkRoute
           }
+
+singletonRouteSummary ::
+  HTTPTypes.StdMethod ->
+  Maybe String ->
+  PathInfo ->
+  DList.DList RouteSummary
+singletonRouteSummary method routeType pathInfo =
+  DList.singleton $
+    RouteSummary
+      { routeSummaryMethod = method
+      , routeSummaryPath =
+          case pathInfoPath pathInfo of
+            "" -> "/"
+            path -> path
+      , routeSummaryRouteType = routeType
+      , routeSummaryLabels = Set.empty
+      }
+
+renderRouteType :: Typeable.TypeRep -> String
+renderRouteType typeRep =
+  let
+    tyCon =
+      Typeable.typeRepTyCon typeRep
+
+    renderArgument :: Typeable.TypeRep -> String
+    renderArgument arg =
+      showsPrec 11 arg ""
+  in
+    unwords $
+      (Typeable.tyConModule tyCon <> "." <> Typeable.tyConName tyCon)
+        : fmap renderArgument (Typeable.typeRepArgs typeRep)
 
 data PathInfo = PathInfo
   { pathInfoPath :: FilePath
@@ -523,6 +595,7 @@ instance R.Router OpenApiRouter where
       OpenApiRouter $
         emptyOpenApiBuilders
           { unlabeledBuilder = builder
+          , routeSummaryBuilder = singletonRouteSummary method Nothing . mkRoute
           }
 
   subrouter (Builder mkRoute) subrouter =

@@ -16,6 +16,7 @@ module Orb.Handler.ServerRouter
   ) where
 
 import Beeline.Routing qualified as R
+import Data.Typeable qualified as Typeable
 import Network.HTTP.Types qualified as HTTPTypes
 import Prelude hiding (head)
 
@@ -23,6 +24,7 @@ import Orb.Handler.Handler (Handler, HasHandler, routeHandler)
 
 class R.Router r => ServerRouter r where
   methodHandler ::
+    Typeable.Typeable route =>
     HTTPTypes.StdMethod ->
     Handler route ->
     R.Builder r route route ->
@@ -34,7 +36,7 @@ instance ServerRouter R.RouteRecognizer where
 
 connect ::
   forall route r.
-  (ServerRouter r, HasHandler route) =>
+  (ServerRouter r, HasHandler route, Typeable.Typeable route) =>
   R.Builder r route route ->
   r route
 connect =
@@ -42,7 +44,7 @@ connect =
 
 delete ::
   forall route r.
-  (ServerRouter r, HasHandler route) =>
+  (ServerRouter r, HasHandler route, Typeable.Typeable route) =>
   R.Builder r route route ->
   r route
 delete =
@@ -50,7 +52,7 @@ delete =
 
 get ::
   forall route r.
-  (ServerRouter r, HasHandler route) =>
+  (ServerRouter r, HasHandler route, Typeable.Typeable route) =>
   R.Builder r route route ->
   r route
 get =
@@ -58,7 +60,7 @@ get =
 
 head ::
   forall route r.
-  (ServerRouter r, HasHandler route) =>
+  (ServerRouter r, HasHandler route, Typeable.Typeable route) =>
   R.Builder r route route ->
   r route
 head =
@@ -66,7 +68,7 @@ head =
 
 options ::
   forall route r.
-  (ServerRouter r, HasHandler route) =>
+  (ServerRouter r, HasHandler route, Typeable.Typeable route) =>
   R.Builder r route route ->
   r route
 options =
@@ -74,7 +76,7 @@ options =
 
 patch ::
   forall route r.
-  (ServerRouter r, HasHandler route) =>
+  (ServerRouter r, HasHandler route, Typeable.Typeable route) =>
   R.Builder r route route ->
   r route
 patch =
@@ -82,7 +84,7 @@ patch =
 
 post ::
   forall route r.
-  (ServerRouter r, HasHandler route) =>
+  (ServerRouter r, HasHandler route, Typeable.Typeable route) =>
   R.Builder r route route ->
   r route
 post =
@@ -90,7 +92,7 @@ post =
 
 put ::
   forall route r.
-  (ServerRouter r, HasHandler route) =>
+  (ServerRouter r, HasHandler route, Typeable.Typeable route) =>
   R.Builder r route route ->
   r route
 put =
@@ -98,7 +100,7 @@ put =
 
 trace ::
   forall route r.
-  (ServerRouter r, HasHandler route) =>
+  (ServerRouter r, HasHandler route, Typeable.Typeable route) =>
   R.Builder r route route ->
   r route
 trace =

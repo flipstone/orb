@@ -8,13 +8,19 @@ module Orb.Main
   , openApiLabelArgument
   , generateOpenApiCommand
   , generateOpenApiMain
+  , routesCommand
+  , printRoutesMain
+  , renderRouteSummaries
   ) where
 
 import Data.Aeson.Encode.Pretty qualified as AesonPretty
+import Data.ByteString.Char8 qualified as BS8
 import Data.ByteString.Lazy qualified as LBS
 import Data.Foldable (traverse_)
 import Data.List qualified as List
+import Data.Maybe qualified as Maybe
 import Data.Set qualified as Set
+import Network.HTTP.Types qualified as HTTPTypes
 import Options.Applicative qualified as Opt
 import System.Exit qualified as Exit
 import System.IO qualified as IO
@@ -23,7 +29,7 @@ import Orb.OpenApi qualified as OpenApi
 
 {- |
   Constructs a main function that parses the command line arguments and
-  provides two subcommands in the executable:
+  provides three subcommands in the executable:
 
   - @api@ - runs the IO action provided as the main. Presumably this
     invokes some form of 'Orb.Wai.runOrb' (or otherwise runs a way server)
@@ -32,6 +38,9 @@ import Orb.OpenApi qualified as OpenApi
   - @generate-open-api@ - accepts a argument matching one of the labels
     provided to 'OpenApi.provideOpenApi' and prints an OpenApi description
     of the labeled routes as JSON to stdout.
+
+  - @routes@ - prints a summary of every route provided to this function
+    to stdout.
 -}
 main :: OpenApi.OpenApiRouter a -> IO () -> IO ()
 main =
@@ -39,7 +48,7 @@ main =
 
 {- |
   Constructs a main function that parses the command line arguments and
-  provides two subcommands in the executable:
+  provides three subcommands in the executable:
 
   - @api@ - runs the IO action provided as the main. Presumably this
     invokes some form of 'Orb.Wai.runOrb' (or otherwise runs a way server)
@@ -48,6 +57,9 @@ main =
   - @generate-open-api@ - accepts a argument matching one of the labels
     provided to 'OpenApi.provideOpenApi' and prints an OpenApi description
     of the labeled routes as JSON to stdout.
+
+  - @routes@ - prints a summary of every route provided to this function
+    to stdout.
 
 
   A version of 'main' takes an 'OpenApi.OpenApiOptions'
@@ -96,10 +108,10 @@ mainParser defaultOptions apiMain =
     ]
 
 {- |
-  Constructs an 'Opt.Parser' than has the @generate-open-api@ command as in
-  the 'main' function along with the other commands passed. In this case no
-  @api@ command is added by orb. It is up to the application to passed
-  whatever set of other commands it desires.
+  Constructs an 'Opt.Parser' that has the @generate-open-api@ and @routes@
+  commands as in the 'main' function along with the other commands passed. In
+  this case no @api@ command is added by orb. It is up to the application to
+  passed whatever set of other commands it desires.
 
   The options passed will be used as the default values for when no options
   are specified on the command line.
@@ -113,6 +125,7 @@ mainParserWithCommands defaultOptions commands routes =
   Opt.hsubparser $
     mconcat
       ( generateOpenApiCommandWithOptions defaultOptions routes
+          : routesCommand routes
           : commands
       )
 
@@ -224,3 +237,43 @@ generateOpenApiMain options routes label =
       Exit.exitWith (Exit.ExitFailure 1)
     Right openApi ->
       LBS.putStr (AesonPretty.encodePretty openApi)
+
+routesCommand ::
+  OpenApi.OpenApiRouter a ->
+  Opt.Mod Opt.CommandFields (IO ())
+routesCommand routes =
+  Opt.command "routes" (Opt.info (pure (printRoutesMain routes)) mempty)
+
+printRoutesMain :: OpenApi.OpenApiRouter a -> IO ()
+printRoutesMain =
+  putStr . renderRouteSummaries . OpenApi.routeSummaries
+
+renderRouteSummaries :: [OpenApi.RouteSummary] -> String
+renderRouteSummaries =
+  foldMap renderRouteSummary
+
+renderRouteSummary :: OpenApi.RouteSummary -> String
+renderRouteSummary summary =
+  let
+    method =
+      BS8.unpack . HTTPTypes.renderStdMethod . OpenApi.routeSummaryMethod $ summary
+
+    routeType =
+      Maybe.fromMaybe "<beeline route>" (OpenApi.routeSummaryRouteType summary)
+
+    labels =
+      Set.toList (OpenApi.routeSummaryLabels summary)
+
+    renderedLabels =
+      case labels of
+        [] -> ""
+        _ -> "  [" <> List.intercalate ", " labels <> "]"
+  in
+    unlines
+      [ padRight 8 method <> OpenApi.routeSummaryPath summary
+      , replicate 10 ' ' <> routeType <> renderedLabels
+      ]
+
+padRight :: Int -> String -> String
+padRight width str =
+  str <> replicate (width - length str) ' '

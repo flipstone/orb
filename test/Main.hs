@@ -7,6 +7,7 @@ import Test.Tasty qualified as Tasty
 import Form qualified
 import Handler qualified
 import OpenApi qualified
+import RouteSummaries qualified
 import StatusCodes qualified
 import SwaggerUI qualified
 
@@ -18,6 +19,7 @@ main =
       [ Form.testGroup
       , Handler.testGroup
       , OpenApi.testGroup
+      , RouteSummaries.testGroup
       , StatusCodes.testGroup
       , SwaggerUI.testGroup
       ]
