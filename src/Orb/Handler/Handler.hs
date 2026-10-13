@@ -412,7 +412,7 @@ returnAnyExceptionAs500 action = do
     Right response -> pure response
     Left exception -> do
       HasLogger.log exception
-      Response.return500 Response.InternalServerError
+      Response.returnResponse Response.status500 Response.InternalServerError
 
 parseBodyFormData ::
   (T.Text -> S.TaggedUnion tags) ->

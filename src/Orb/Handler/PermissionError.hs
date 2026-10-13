@@ -39,7 +39,7 @@ class PermissionError err where
     'returnPermissionError' is called as part of running a Handler when the
     permission check for the handler returns an error. It constructs the
     response an instance of the Handler's response type as appropriate for
-    the error value passed to it, generally using helpers such as 'H.return401'.
+    the error value passed to it, generally using helpers such as 'H.returnResponse'.
   -}
   returnPermissionError ::
     PermissionErrorConstraints err tags =>
