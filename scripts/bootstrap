@@ -17,7 +17,7 @@ else
   GIT_COMMON_DIR_RAW="$(git rev-parse --git-common-dir)"
 
   if [ "$GIT_COMMON_DIR_RAW" != ".git" ]; then
-    GIT_COMMON_DIR="$(readlink --canonicalize "$GIT_COMMON_DIR_RAW")"
+    GIT_COMMON_DIR="$(readlink -f "$GIT_COMMON_DIR_RAW")"
     echo "GIT_COMMON_DIR=$GIT_COMMON_DIR" >> .env
     echo "Detected git worktree. Main git dir: $GIT_COMMON_DIR"
   else
